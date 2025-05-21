@@ -21,7 +21,9 @@ FILTRAudioProcessor::FILTRAudioProcessor()
     , settings{}
     , params(*this, &undoManager, "PARAMETERS", {
         std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 1.0f),
-        std::make_unique<juce::AudioParameterInt>("pattern", "Pattern", 1, 12, 1),
+        std::make_unique<juce::AudioParameterInt>("pattern", "Cutoff Pattern", 1, 12, 1),
+        std::make_unique<juce::AudioParameterInt>("respattern", "Res Pattern", 1, 12, 1),
+        std::make_unique<juce::AudioParameterBool>("linkpats", "Link Patterns", true),
         std::make_unique<juce::AudioParameterChoice>("patsync", "Pattern Sync", StringArray { "Off", "1/4 Beat", "1/2 Beat", "1 Beat", "2 Beats", "4 Beats"}, 0),
         std::make_unique<juce::AudioParameterChoice>("trigger", "Trigger", StringArray { "Sync", "MIDI", "Audio" }, 0),
         std::make_unique<juce::AudioParameterChoice>("sync", "Sync", StringArray { "Rate Hz", "1/16", "1/8", "1/4", "1/2", "1/1", "2/1", "4/1", "1/16t", "1/8t", "1/4t", "1/2t", "1/1t", "1/16.", "1/8.", "1/4.", "1/2.", "1/1." }, 5),
@@ -37,6 +39,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("tensionrel", "Release Tension", -1.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterBool>("snap", "Snap", false),
         std::make_unique<juce::AudioParameterInt>("grid", "Grid", 0, (int)std::size(GRID_SIZES)-1, 2),
+        std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", -1.0f, 1.0f, 0.0f),
         // filter params
         std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-" }, 0),
         std::make_unique<juce::AudioParameterChoice>("fmode", "Filter Mode", StringArray { "Low Pass", "Band Pass", "High Pass", "Band Stop", "Peak" }, 0),
@@ -78,6 +81,11 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         patterns[i]->insertPoint(0.5, 0, 0, 1);
         patterns[i]->insertPoint(1, 1, 0, 1);
         patterns[i]->buildSegments();
+
+        respatterns[i] = new Pattern(i+12);
+        respatterns[i]->insertPoint(0.0, 0.5, 0, 1);
+        respatterns[i]->insertPoint(1.0, 0.5, 0, 1);
+        respatterns[i]->buildSegments();
     }
 
     // init paintMode Patterns
@@ -98,7 +106,9 @@ FILTRAudioProcessor::FILTRAudioProcessor()
 
     sequencer = new Sequencer(*this);
     pattern = patterns[0];
+    respattern = respatterns[0];
     viewPattern = pattern;
+    viewSubPattern = respattern;
     preSamples.resize(MAX_PLUG_WIDTH, 0); // samples array size must be >= viewport width
     postSamples.resize(MAX_PLUG_WIDTH, 0);
     monSamples.resize(MAX_PLUG_WIDTH, 0); // samples array size must be >= audio monitor width
@@ -193,8 +203,11 @@ void FILTRAudioProcessor::createUndoPoint(int patindex)
         if (patindex < 12) {
             patterns[patindex]->createUndo();
         }
+        else if (patindex < 24) {
+            respatterns[patindex - 12]->createUndo();
+        }
         else {
-            paintPatterns[patindex - 100]->createUndo();
+            paintPatterns[patindex - PAINT_PATS_IDX]->createUndo();
         }
     }
     sendChangeMessage(); // UI repaint
@@ -215,6 +228,18 @@ void FILTRAudioProcessor::createUndoPointFromSnapshot(std::vector<PPoint> snapsh
     }
 }
 
+void FILTRAudioProcessor::setResonanceEditMode(bool isResonance)
+{
+    MessageManager::callAsync([this, isResonance] {
+        resonanceEditMode = isResonance;
+        if (uimode != UIMode::PaintEdit) {
+            viewPattern = resonanceEditMode ? respattern : pattern;
+            viewSubPattern = resonanceEditMode ? pattern : respattern;
+        }
+        sendChangeMessage();
+    });
+}
+
 void FILTRAudioProcessor::setUIMode(UIMode mode)
 {
     MessageManager::callAsync([this, mode]() {
@@ -222,12 +247,14 @@ void FILTRAudioProcessor::setUIMode(UIMode mode)
             sequencer->close();
 
         if (mode == UIMode::Normal) {
-            viewPattern = pattern;
+            viewPattern = resonanceEditMode ? respattern : pattern;
+            viewSubPattern = resonanceEditMode ? pattern : respattern;
             showSequencer = false;
             showPaintWidget = false;
         }
         else if (mode == UIMode::Paint) {
-            viewPattern = pattern;
+            viewPattern = resonanceEditMode ? respattern : pattern;
+            viewSubPattern = resonanceEditMode ? pattern : respattern;
             showPaintWidget = true;
             showSequencer = false;
         }
@@ -238,7 +265,8 @@ void FILTRAudioProcessor::setUIMode(UIMode mode)
         }
         else if (mode == UIMode::Seq) {
             sequencer->open();
-            viewPattern = pattern;
+            viewPattern = resonanceEditMode ? respattern : pattern;
+            viewSubPattern = resonanceEditMode ? pattern : respattern;
             showPaintWidget = sequencer->selectedShape == CellShape::SPTool;
             showSequencer = true;
         }
@@ -286,15 +314,6 @@ void FILTRAudioProcessor::setViewPattern(int index)
         viewPattern = paintPatterns[index - PAINT_PATS_IDX];
     }
     sendChangeMessage();
-}
-
-void FILTRAudioProcessor::setPaintTool(int index)
-{
-    paintTool = index;
-    if (uimode == UIMode::PaintEdit) {
-        viewPattern = paintPatterns[index];
-        sendChangeMessage();
-    }
 }
 
 void FILTRAudioProcessor::restorePaintPatterns()
@@ -780,6 +799,8 @@ void FILTRAudioProcessor::queuePattern(int patidx)
     queuedPattern = patidx;
     queuedPatternCountdown = 0;
     int patsync = (int)params.getRawParameterValue("patsync")->load();
+    bool linkpats = (bool)params.getRawParameterValue("linkpats")->load();
+    if (linkpats) queueResPattern(patidx);
 
     if (playing && patsync != PatSync::Off) {
         int interval = samplesPerBeat;
@@ -796,6 +817,33 @@ void FILTRAudioProcessor::queuePattern(int patidx)
 
     MessageManager::callAsync([this, patidx] {
         auto param = params.getParameter("pattern");
+        param->beginChangeGesture();
+        param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
+        param->endChangeGesture();
+    });
+}
+
+void FILTRAudioProcessor::queueResPattern(int patidx)
+{
+    queuedResPattern = patidx;
+    queuedResPatternCountdown = 0;
+    int patsync = (int)params.getRawParameterValue("patsync")->load();
+
+    if (playing && patsync != PatSync::Off) {
+        int interval = samplesPerBeat;
+        if (patsync == PatSync::QuarterBeat)
+            interval = interval / 4;
+        else if (patsync == PatSync::HalfBeat)
+            interval = interval / 2;
+        else if (patsync == PatSync::Beat_x2)
+            interval = interval * 2;
+        else if (patsync == PatSync::Beat_x4)
+            interval = interval * 4;
+        queuedResPatternCountdown = (interval - timeInSamples % interval) % interval;
+    }
+
+    MessageManager::callAsync([this, patidx] {
+        auto param = params.getParameter("respattern");
         param->beginChangeGesture();
         param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
         param->endChangeGesture();
@@ -1043,7 +1091,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                     setUIMode(UIMode::Normal);
                 }
                 pattern = patterns[queuedPattern - 1];
-                viewPattern = pattern;
+                viewPattern = resonanceEditMode ? respattern : pattern;
+                viewSubPattern = resonanceEditMode ? pattern : respattern;
                 auto tension = (double)params.getRawParameterValue("tension")->load();
                 auto tensionatk = (double)params.getRawParameterValue("tensionatk")->load();
                 auto tensionrel = (double)params.getRawParameterValue("tensionrel")->load();
@@ -1056,6 +1105,31 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             }
             if (queuedPatternCountdown > 0) {
                 queuedPatternCountdown -= 1;
+            }
+        }
+
+        // process queued res pattern
+        if (queuedResPattern) {
+            if (!playing || queuedResPatternCountdown == 0) {
+                if (uimode == UIMode::Seq) {
+                    sequencer->close();
+                    setUIMode(UIMode::Normal);
+                }
+                respattern = respatterns[queuedResPattern - 1];
+                viewPattern = resonanceEditMode ? respattern : pattern;
+                viewSubPattern = resonanceEditMode ? pattern : respattern;
+                auto tension = (double)params.getRawParameterValue("tension")->load();
+                auto tensionatk = (double)params.getRawParameterValue("tensionatk")->load();
+                auto tensionrel = (double)params.getRawParameterValue("tensionrel")->load();
+                respattern->setTension(tension, tensionatk, tensionrel, dualTension);
+                respattern->buildSegments();
+                MessageManager::callAsync([this]() {
+                    sendChangeMessage();
+                });
+                queuedResPattern = 0;
+            }
+            if (queuedResPatternCountdown > 0) {
+                queuedResPatternCountdown -= 1;
             }
         }
 

@@ -131,10 +131,14 @@ public:
 
     // State
     Pattern* pattern; // current pattern used for audio processing
+    Pattern* respattern; // current resonance pattern used for audio processing
     Pattern* viewPattern; // pattern being edited on the view, usually the audio pattern but can also be a paint mode pattern
+    Pattern* viewSubPattern; // secondary pattern drawn on view, usually the resonance pattern
     Sequencer* sequencer;
     int queuedPattern = 0; // queued pat index, 0 = off
     int64_t queuedPatternCountdown = 0; // samples counter until queued pattern is applied
+    int queuedResPattern = 0; // queued pat index, 0 = off
+    int64_t queuedResPatternCountdown = 0; // samples counter until queued pattern is applied
     double xpos = 0.0; // envelope x pos (0..1)
     double ypos = 0.0; // envelope y pos (0..1)
     double trigpos = 0.0; // used by trigger (Audio and MIDI) to detect one one shot envelope play
@@ -205,6 +209,7 @@ public:
     bool showAudioKnobs = false; // used by UI to toggle audio knobs
     bool showPaintWidget = false;
     bool showSequencer = false;
+    bool resonanceEditMode = false;
 
     //==============================================================================
     FILTRAudioProcessor();
@@ -222,9 +227,9 @@ public:
     void toggleSequencerMode();
     Pattern* getPaintPatern(int index);
     void setViewPattern(int index);
-    void setPaintTool(int index);
     void restorePaintPatterns();
     void resetFilters(double srate);
+    void setResonanceEditMode(bool isResonance);
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -250,6 +255,7 @@ public:
     void toggleMonitorSidechain();
     double getY(double x, double min, double max);
     void queuePattern(int patidx);
+    void queueResPattern(int patidx);
 
     //==============================================================================
     void processBlock (AudioBuffer<double>&, MidiBuffer&) override;
@@ -286,7 +292,8 @@ public:
     UndoManager undoManager;
 
 private:
-    Pattern* patterns[12]; // audio process patterns
+    Pattern* patterns[12]; // audio process cutoff patterns
+    Pattern* respatterns[12]; // audio process resonance patterns
     Pattern* paintPatterns[PAINT_PATS]; // paint mode patterns
     Transient transDetectorL;
     Transient transDetectorR;

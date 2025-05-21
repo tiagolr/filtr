@@ -16,6 +16,7 @@
 #include "ui/CustomLookAndFeel.h"
 #include "ui/About.h"
 #include "ui/View.h"
+#include "dsp/filter/Filter.h"
 #include "ui/SettingsButton.h"
 #include "ui/AudioDisplay.h"
 #include "ui/PaintToolWidget.h"
@@ -59,10 +60,12 @@ private:
     std::unique_ptr<SettingsButton> settingsButton;
     std::unique_ptr<TextDial> mixDial;
 
+    std::unique_ptr<Rotary> cutoff;
+    std::unique_ptr<Rotary> q;
+    std::unique_ptr<Rotary> drive;
+    std::unique_ptr<Rotary> morph;
+    std::unique_ptr<Rotary> gain;
     std::unique_ptr<Rotary> rate;
-    std::unique_ptr<Rotary> phase;
-    std::unique_ptr<Rotary> min;
-    std::unique_ptr<Rotary> max;
     std::unique_ptr<Rotary> smooth;
     std::unique_ptr<Rotary> attack;
     std::unique_ptr<Rotary> release;
@@ -77,6 +80,14 @@ private:
     
     ComboBox algoMenu;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;
+    TextButton cutoffButton;
+    TextButton resonanceButton;
+    ComboBox filterTypeMenu;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterTypeAttachment;
+    ComboBox filterModeMenu;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterModeAttachment;
+    TextButton copyButton;
+    TextButton pasteButton;
     TextButton useSidechain;
     TextButton useMonitor;
     TextButton nudgeRightButton;

@@ -181,24 +181,34 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     // KNOBS ROW
     row += 35;
     col = PLUG_PADDING;
+
+    cutoff = std::make_unique<Rotary>(p, "cutoff", "Cutoff", RotaryLabel::hz);
+    addAndMakeVisible(*cutoff);
+    cutoff->setBounds(col,row,80,65);
+    col += 75;
+
+    q = std::make_unique<Rotary>(p, "q", "Res", RotaryLabel::percx100);
+    addAndMakeVisible(*q);
+    q->setBounds(col,row,80,65);
+    col += 75;
+
+    drive = std::make_unique<Rotary>(p, "fdrive", "Drive", RotaryLabel::percx100);
+    addAndMakeVisible(*drive);
+    drive->setBounds(col,row,80,65);
+
+    morph = std::make_unique<Rotary>(p, "fmorph", "Morph", RotaryLabel::percx100);
+    addAndMakeVisible(*morph);
+    morph->setBounds(col,row,80,65);
+    col += 75;
+
+    gain = std::make_unique<Rotary>(p, "gain", "Gain", RotaryLabel::gainTodB1f, true);
+    addAndMakeVisible(*gain);
+    gain->setBounds(col,row,80,65);
+    col += 95;
+
     rate = std::make_unique<Rotary>(p, "rate", "Rate", RotaryLabel::hz1f);
     addAndMakeVisible(*rate);
     rate->setBounds(col,row,80,65);
-    col += 75;
-
-    phase = std::make_unique<Rotary>(p, "phase", "Phase", RotaryLabel::percx100);
-    addAndMakeVisible(*phase);
-    phase->setBounds(col,row,80,65);
-    col += 75;
-
-    min = std::make_unique<Rotary>(p, "min", "Min", RotaryLabel::percx100);
-    addAndMakeVisible(*min);
-    min->setBounds(col,row,80,65);
-    col += 75;
-
-    max = std::make_unique<Rotary>(p, "max", "Max", RotaryLabel::percx100);
-    addAndMakeVisible(*max);
-    max->setBounds(col,row,80,65);
     col += 75;
 
     smooth = std::make_unique<Rotary>(p, "smooth", "Smooth", RotaryLabel::percx100);
@@ -219,7 +229,6 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     tension = std::make_unique<Rotary>(p, "tension", "Tension", RotaryLabel::percx100, true);
     addAndMakeVisible(*tension);
     tension->setBounds(col,row,80,65);
-    //col += 75;
 
     tensionatk = std::make_unique<Rotary>(p, "tensionatk", "TAtk", RotaryLabel::percx100, true);
     addAndMakeVisible(*tensionatk);
@@ -526,6 +535,7 @@ void FILTRAudioProcessorEditor::parameterChanged (const juce::String& parameterI
 void FILTRAudioProcessorEditor::toggleUIComponents()
 {
     patterns[audioProcessor.pattern->index].get()->setToggleState(true, dontSendNotification);
+    auto ftype = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
     auto trigger = (int)audioProcessor.params.getRawParameterValue("trigger")->load();
     auto triggerColor = trigger == 0 ? COLOR_ACTIVE : trigger == 1 ? COLOR_MIDI : COLOR_AUDIO;
     triggerMenu.setColour(ComboBox::arrowColourId, Colour(triggerColor));
@@ -541,12 +551,15 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 
     int sync = (int)audioProcessor.params.getRawParameterValue("sync")->load();
     bool showAudioKnobs = audioProcessor.showAudioKnobs;
+    bool showMorph = ftype == kPhaserPos || ftype != kPhaserNeg;
 
     // layout knobs
+    cutoff->setVisible(!showAudioKnobs);
+    q->setVisible(!showAudioKnobs);
+    drive->setVisible(!showAudioKnobs && !showMorph);
+    morph->setVisible(!showAudioKnobs && showMorph);
+    gain->setVisible(!showAudioKnobs);
     rate->setVisible(!showAudioKnobs);
-    phase->setVisible(!showAudioKnobs);
-    min->setVisible(!showAudioKnobs);
-    max->setVisible(!showAudioKnobs);
     smooth->setVisible(!showAudioKnobs);
     attack->setVisible(!showAudioKnobs);
     release->setVisible(!showAudioKnobs);
@@ -562,18 +575,13 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     audioDisplay->setVisible(showAudioKnobs);
 
     if (!showAudioKnobs) {
-        auto col = PLUG_PADDING;
-        auto row = PLUG_PADDING + 35 + 35;
+        auto col = gain->getBounds().getX();
+        auto row = gain->getBounds().getY();
+        col += 95;
+
         rate->setVisible(sync == 0);
-        rate->setTopLeftPosition(col, row);
-        if (rate->isVisible())
-            col += 75;
-        phase->setTopLeftPosition(col, row);
-        col += 75;
-        min->setTopLeftPosition(col, row);
-        col += 75;
-        max->setTopLeftPosition(col, row);
-        col += 75;
+        if (rate->isVisible()) col += 75;
+        
         if (audioProcessor.dualSmooth) {
             smooth->setVisible(false);
             attack->setVisible(true);
