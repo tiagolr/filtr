@@ -681,6 +681,7 @@ void FILTRAudioProcessor::onTensionChange()
     auto tensionatk = (double)params.getRawParameterValue("tensionatk")->load();
     auto tensionrel = (double)params.getRawParameterValue("tensionrel")->load();
     pattern->setTension(tension, tensionatk, tensionrel, dualTension);
+    respattern->setTension(tension, tensionatk, tensionrel, dualTension);
     pattern->buildSegments();
     for (int i = 0; i < PAINT_PATS; ++i) {
         paintPatterns[i]->setTension(tension, tensionatk, tensionrel, dualTension);
@@ -1394,6 +1395,12 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
             oss << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
         }
         state.setProperty("pattern" + juce::String(i), var(oss.str()), nullptr);
+
+        points = respatterns[i]->points;
+        for (const auto& point : points) {
+            oss << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
+        }
+        state.setProperty("respattern" + juce::String(i), var(oss.str()), nullptr);
     }
 
     // serialize sequencer cells
@@ -1450,6 +1457,8 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         for (int i = 0; i < 12; ++i) {
             patterns[i]->clear();
             patterns[i]->clearUndo();
+            respatterns[i]->clear();
+            respatterns[i]->clearUndo();
 
             auto str = state.getProperty("pattern" + String(i)).toString().toStdString();
             if (!str.empty()) {
@@ -1461,11 +1470,23 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
                 }
             }
 
+            str = state.getProperty("respattern" + String(i)).toString().toStdString();
+            if (!str.empty()) {
+                double x, y, tension;
+                int type;
+                std::istringstream iss(str);
+                while (iss >> x >> y >> tension >> type) {
+                    respatterns[i]->insertPoint(x,y,tension,type);
+                }
+            }
+
             auto tension = (double)params.getRawParameterValue("tension")->load();
             auto tensionatk = (double)params.getRawParameterValue("tensionatk")->load();
             auto tensionrel = (double)params.getRawParameterValue("tensionrel")->load();
             patterns[i]->setTension(tension, tensionatk, tensionrel, dualTension);
             patterns[i]->buildSegments();
+            respatterns[i]->setTension(tension, tensionatk, tensionrel, dualTension);
+            respatterns[i]->buildSegments();
         }
 
         if (state.hasProperty("seqcells")) {
