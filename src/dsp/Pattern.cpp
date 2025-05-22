@@ -36,6 +36,7 @@ void Pattern::sortPoints()
 void Pattern::sortPointsSafe()
 {
     std::lock_guard<std::mutex> lock(pointsmtx);
+    clearTransform();
     sortPoints();
 }
 
