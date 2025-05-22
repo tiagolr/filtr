@@ -263,6 +263,7 @@ void Pattern::transform(double midy)
         }
     }
 
+    incrementVersion();
     buildSegments();
 }
 

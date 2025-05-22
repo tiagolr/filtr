@@ -171,6 +171,8 @@ public:
     juce::dsp::LadderFilter<double> ladderFilter;
     double lastOutL = 0.0; // used for smoothly transition filter types
     double lastOutR = 0.0;
+    bool cutoffDirty = false;
+    bool resDirty = false;
 
     // Audio mode state
     bool audioTrigger = false; // flag audio has triggered envelope
@@ -249,7 +251,7 @@ public:
     //==============================================================================
     void onSlider ();
     void updatePatternFromCutoff();
-    void updateResPatternFromQ();
+    void updateResPatternFromRes();
     void updateCutoffFromPattern();
     void updateResFromPattern();
     void onTensionChange();

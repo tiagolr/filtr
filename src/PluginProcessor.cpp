@@ -675,8 +675,22 @@ void FILTRAudioProcessor::onSlider()
         lfmorph = fmorph;
     }
 
-    double cutoff = params.getRawParameterValue("cutoff")->load();
-    double res = params.getRawParameterValue("res")->load();
+    if (cutoffDirty) {
+        float avg = (float)pattern->getavgY();
+        params.getParameter("cutoff")->setValueNotifyingHost(avg);
+        lcutoff = (double)params.getRawParameterValue("cutoff")->load();
+        cutoffDirty = false;
+    }
+
+    if (resDirty) {
+        float avg = (float)respattern->getavgY();
+        params.getParameter("res")->setValueNotifyingHost(avg);
+        lres = (double)params.getRawParameterValue("res")->load();
+        resDirty = false;
+    }
+
+    double cutoff = (double)params.getRawParameterValue("cutoff")->load();
+    double res = (double)params.getRawParameterValue("res")->load();
     
     if (cutoff != lcutoff) {
         updatePatternFromCutoff();
@@ -684,7 +698,7 @@ void FILTRAudioProcessor::onSlider()
     }
 
     if (res != lres) {
-        updateResPatternFromQ();
+        updateResPatternFromRes();
         lres = res;
     }
 }
@@ -695,28 +709,22 @@ void FILTRAudioProcessor::updatePatternFromCutoff()
     pattern->transform(cutnorm);
 }
 
-void FILTRAudioProcessor::updateResPatternFromQ()
+void FILTRAudioProcessor::updateResPatternFromRes()
 {
-    double q = (double)params.getParameter("res")->getValue();
-    respattern->transform(q);
+    double resnorm = (double)params.getParameter("res")->getValue();
+    respattern->transform(resnorm);
 }
 
 void FILTRAudioProcessor::updateCutoffFromPattern()
 {
-    MessageManager::callAsync([this] {
-        double avg = pattern->getavgY();
-        params.getParameter("cutoff")->setValueNotifyingHost((float)avg);
-        lcutoff = (double)params.getRawParameterValue("cutoff")->load();
-    });
+    cutoffDirty = true;
+    paramChanged = true;
 }
 
 void FILTRAudioProcessor::updateResFromPattern()
 {
-    MessageManager::callAsync([this] {
-        double avg = respattern->getavgY();
-        params.getParameter("res")->setValueNotifyingHost((float)avg);
-        lres = (double)params.getRawParameterValue("res")->load();
-    });
+    resDirty = true;
+    paramChanged = true;
 }
 
 void FILTRAudioProcessor::onTensionChange()

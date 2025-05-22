@@ -63,7 +63,7 @@ private:
     std::unique_ptr<TextDial> mixDial;
 
     std::unique_ptr<Rotary> cutoff;
-    std::unique_ptr<Rotary> q;
+    std::unique_ptr<Rotary> res;
     std::unique_ptr<Rotary> drive;
     std::unique_ptr<Rotary> morph;
     std::unique_ptr<Rotary> gain;
