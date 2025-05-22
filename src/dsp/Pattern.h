@@ -61,22 +61,28 @@ public:
 
     int insertPoint(double x, double y, double tension, int type);
     void sortPoints();
+    void sortPointsSafe();
     void setTension(double t, double tatk, double trel, bool dual); // sets global tension multiplier
     void removePoint(double x, double y);
     void removePoint(int i);
     void removePointsInRange(double x1, double x2);
+    void removePointsInRangeAux(double x1, double x2);
     void invert();
     void reverse();
     void rotate(double x);
     void clear();
+    void clearUnsafe();
     void buildSegments();
     void loadSine();
     void loadTriangle();
     void loadRandom(int grid);
     void copy();
     void paste();
-    int getWaveCount(Segment seg);
+    void transform(double midy_);
+    void clearTransform();
+    double getavgY();
 
+    int getWaveCount(Segment seg);
     double get_y_curve(Segment seg, double x);
     double get_y_scurve(Segment seg, double x);
     double get_y_pulse(Segment seg, double x);
@@ -93,8 +99,10 @@ public:
     static bool comparePoints(const std::vector<PPoint>& a, const std::vector<PPoint>& b);
 
 private:
+    std::vector<PPoint> rawpoints; 
     static inline uint64_t versionIDCounter = 1; // static global ID counter
     static inline uint64_t pointsIDCounter = 1; // static global ID counter
     bool dualTension = false;
     std::mutex mtx;
+    std::mutex pointsmtx;
 };

@@ -43,12 +43,11 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         // filter params
         std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-" }, 0),
         std::make_unique<juce::AudioParameterChoice>("fmode", "Filter Mode", StringArray { "Low Pass", "Band Pass", "High Pass", "Band Stop", "Peak" }, 0),
-        std::make_unique<juce::AudioParameterFloat>("fsmooth", "Filter Smooth", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("flerp", "Filter Lerp", juce::NormalisableRange<float> (0.0f, 1.0f), 0.5f),
         std::make_unique<juce::AudioParameterFloat>("fdrive", "Filter Drive", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("fmorph", "Filter Cutoff", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("cutoff", "Filter Cutoff", juce::NormalisableRange<float>((float)F_MIN_FREQ, (float)F_MAX_FREQ, Utils::normalToFreqf, Utils::freqToNormalf, noSnap), (float)F_MIN_FREQ),
-        std::make_unique<juce::AudioParameterFloat>("q", "Filter Q", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("fmorph", "Filter Morph", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float>((float)F_MIN_FREQ, (float)F_MAX_FREQ, Utils::normalToFreqf, Utils::freqToNormalf, noSnap), (float)F_MIN_FREQ),
+        std::make_unique<juce::AudioParameterFloat>("res", "Resonance", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
         // audio trigger params
         std::make_unique<juce::AudioParameterChoice>("algo", "Audio Algorithm", StringArray { "Simple", "Drums" }, 0),
         std::make_unique<juce::AudioParameterFloat>("threshold", "Audio Threshold", NormalisableRange<float>(0.0f, 1.0f), 0.5f),
@@ -417,6 +416,8 @@ void FILTRAudioProcessor::loadProgram (int index)
         loadPreset(*pattern, index - 1);
     }
 
+    updateCutoffFromPattern();
+    updateResFromPattern();
     setUIMode(UIMode::Normal);
     sendChangeMessage(); // UI Repaint
 }
@@ -673,6 +674,49 @@ void FILTRAudioProcessor::onSlider()
         rFilter->setMorph(fmorph);
         lfmorph = fmorph;
     }
+
+    double cutoff = params.getRawParameterValue("cutoff")->load();
+    double res = params.getRawParameterValue("res")->load();
+    
+    if (cutoff != lcutoff) {
+        updatePatternFromCutoff();
+        lcutoff = cutoff;
+    }
+
+    if (res != lres) {
+        updateResPatternFromQ();
+        lres = res;
+    }
+}
+
+void FILTRAudioProcessor::updatePatternFromCutoff()
+{
+    double cutnorm = (double)params.getParameter("cutoff")->getValue();
+    pattern->transform(cutnorm);
+}
+
+void FILTRAudioProcessor::updateResPatternFromQ()
+{
+    double q = (double)params.getParameter("res")->getValue();
+    respattern->transform(q);
+}
+
+void FILTRAudioProcessor::updateCutoffFromPattern()
+{
+    MessageManager::callAsync([this] {
+        double avg = pattern->getavgY();
+        params.getParameter("cutoff")->setValueNotifyingHost((float)avg);
+        lcutoff = (double)params.getRawParameterValue("cutoff")->load();
+    });
+}
+
+void FILTRAudioProcessor::updateResFromPattern()
+{
+    MessageManager::callAsync([this] {
+        double avg = respattern->getavgY();
+        params.getParameter("res")->setValueNotifyingHost((float)avg);
+        lres = (double)params.getRawParameterValue("res")->load();
+    });
 }
 
 void FILTRAudioProcessor::onTensionChange()
@@ -1115,6 +1159,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 auto tensionrel = (double)params.getRawParameterValue("tensionrel")->load();
                 pattern->setTension(tension, tensionatk, tensionrel, dualTension);
                 pattern->buildSegments();
+                updateCutoffFromPattern();
                 MessageManager::callAsync([this]() {
                     sendChangeMessage();
                 });
@@ -1140,6 +1185,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 auto tensionrel = (double)params.getRawParameterValue("tensionrel")->load();
                 respattern->setTension(tension, tensionatk, tensionrel, dualTension);
                 respattern->buildSegments();
+                updateResFromPattern();
                 MessageManager::callAsync([this]() {
                     sendChangeMessage();
                 });
@@ -1391,6 +1437,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
     for (int i = 0; i < 12; ++i) {
         std::ostringstream oss;
+        std::ostringstream ossres;
         auto points = patterns[i]->points;
         for (const auto& point : points) {
             oss << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
@@ -1399,9 +1446,9 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
         points = respatterns[i]->points;
         for (const auto& point : points) {
-            oss << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
+            ossres << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
         }
-        state.setProperty("respattern" + juce::String(i), var(oss.str()), nullptr);
+        state.setProperty("respattern" + juce::String(i), var(ossres.str()), nullptr);
     }
 
     // serialize sequencer cells
@@ -1489,6 +1536,9 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
             respatterns[i]->setTension(tension, tensionatk, tensionrel, dualTension);
             respatterns[i]->buildSegments();
         }
+
+        updateCutoffFromPattern();
+        updateResFromPattern();
 
         if (state.hasProperty("seqcells")) {
             auto str = state.getProperty("seqcells").toString().toStdString();

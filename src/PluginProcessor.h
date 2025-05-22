@@ -153,6 +153,8 @@ public:
     double ltension = -10.0;
     double ltensionatk = -10.0;
     double ltensionrel = -10.0;
+    double lcutoff = 0.0; // last cutoff
+    double lres = 0.0; // last q resonance
     RCSmoother* value; // smooths cutoff envelope value
     RCSmoother* resvalue; // smooths resonance envelope value
     bool showLatencyWarning = false;
@@ -246,6 +248,10 @@ public:
 
     //==============================================================================
     void onSlider ();
+    void updatePatternFromCutoff();
+    void updateResPatternFromQ();
+    void updateCutoffFromPattern();
+    void updateResFromPattern();
     void onTensionChange();
     void onPlay ();
     void onStop ();

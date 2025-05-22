@@ -227,14 +227,14 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     row += 35;
     col = PLUG_PADDING;
 
-    cutoff = std::make_unique<Rotary>(p, "cutoff", "Cutoff", RotaryLabel::hz);
+    cutoff = std::make_unique<Rotary>(p, "cutoff", "Cutoff", RotaryLabel::hz, false, COLOR_ACTIVE, CutoffKnob);
     addAndMakeVisible(*cutoff);
     cutoff->setBounds(col,row,80,65);
     col += 75;
 
-    q = std::make_unique<Rotary>(p, "q", "Res", RotaryLabel::percx100);
-    addAndMakeVisible(*q);
-    q->setBounds(col,row,80,65);
+    res = std::make_unique<Rotary>(p, "res", "Res", RotaryLabel::percx100, false, COLOR_ACTIVE, ResKnob);
+    addAndMakeVisible(*res);
+    res->setBounds(col,row,80,65);
     col += 75;
 
     drive = std::make_unique<Rotary>(p, "fdrive", "Drive", RotaryLabel::percx100);
@@ -674,7 +674,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 
     // layout knobs
     cutoff->setVisible(!showAudioKnobs);
-    q->setVisible(!showAudioKnobs);
+    res->setVisible(!showAudioKnobs);
     drive->setVisible(!showAudioKnobs && !showMorph);
     morph->setVisible(!showAudioKnobs && showMorph);
     gain->setVisible(!showAudioKnobs);

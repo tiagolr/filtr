@@ -376,6 +376,8 @@ void View::mouseDown(const juce::MouseEvent& e)
     if (!isEnabled() || patternID != audioProcessor.viewPattern->versionID)
         return;
 
+    audioProcessor.viewPattern->clearTransform();
+
     if (audioProcessor.uimode == UIMode::Seq) {
         audioProcessor.sequencer->mouseDown(e);
         return;
@@ -441,6 +443,7 @@ void View::mouseUp(const juce::MouseEvent& e)
 {
     setMouseCursor(MouseCursor::NormalCursor);
     e.source.enableUnboundedMouseMovement(false);
+
 
     if (!isEnabled() || patternID != audioProcessor.viewPattern->versionID)
         return;
@@ -531,6 +534,9 @@ void View::mouseDrag(const juce::MouseEvent& e)
 {
     if (!isEnabled() || patternID != audioProcessor.viewPattern->versionID)
         return;
+
+    audioProcessor.updateCutoffFromPattern();
+    audioProcessor.updateResFromPattern();
 
     if (audioProcessor.uimode == UIMode::Seq) {
         audioProcessor.sequencer->mouseDrag(e);
@@ -659,7 +665,7 @@ void View::mouseDoubleClick(const juce::MouseEvent& e)
         py = double(py - winy) / (double)winh;
         if (px >= 0 && px <= 1 && py >= 0 && py <= 1) { // point in env window
             audioProcessor.viewPattern->insertPoint(px, py, 0, audioProcessor.pointMode);
-            audioProcessor.viewPattern->sortPoints(); // keep things consistent, avoids reorders later
+            audioProcessor.viewPattern->sortPointsSafe(); // keep things consistent, avoids reorders later
         }
     }
 

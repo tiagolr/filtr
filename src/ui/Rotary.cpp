@@ -1,7 +1,7 @@
 #include "Rotary.h"
 #include "../PluginProcessor.h"
 
-Rotary::Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric, unsigned int color)
+Rotary::Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric, unsigned int color, RotaryType type)
     : juce::SettableTooltipClient()
     , juce::Component()
     , audioProcessor(p)
@@ -11,6 +11,7 @@ Rotary::Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, 
     , isSymmetric(isSymmetric)
     , isAudioKnob(isAudioKnob)
     , color(color)
+    , type(type)
 {
     setName(name);
     audioProcessor.params.addParameterListener(paramId, this);
@@ -124,6 +125,10 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
 
 void Rotary::mouseDown(const juce::MouseEvent& e) 
 {
+    if (type != RotaryType::NormalKnob) {
+        lresEditMode = audioProcessor.resonanceEditMode;
+        audioProcessor.setResonanceEditMode(type == ResKnob);
+    }
     e.source.enableUnboundedMouseMovement(true);
     mouse_down = true;
     auto param = audioProcessor.params.getParameter(paramId);
@@ -154,6 +159,9 @@ void Rotary::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWhee
 }
 
 void Rotary::mouseUp(const juce::MouseEvent& e) {
+    if (type != NormalKnob) {
+        audioProcessor.setResonanceEditMode(lresEditMode);
+    }
     mouse_down = false;
     setMouseCursor(MouseCursor::NormalCursor);
     e.source.enableUnboundedMouseMovement(false);

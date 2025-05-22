@@ -22,9 +22,17 @@ enum RotaryLabel {
     audioOffset,
 };
 
+enum RotaryType {
+    NormalKnob,
+    CutoffKnob,
+    ResKnob
+};
+
 class Rotary : public juce::SettableTooltipClient, public juce::Component, private juce::AudioProcessorValueTreeState::Listener {
 public:
-    Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric = false, unsigned int color = COLOR_ACTIVE);
+    Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, 
+        bool isSymmetric = false, unsigned int color = COLOR_ACTIVE, RotaryType type = RotaryType::NormalKnob
+    );
     ~Rotary() override;
     void paint(juce::Graphics& g) override;
 
@@ -43,6 +51,8 @@ protected:
     FILTRAudioProcessor& audioProcessor;
 
 private:
+    RotaryType type;
+    bool lresEditMode;
     unsigned int color = COLOR_ACTIVE;
     bool isSymmetric;
     bool isAudioKnob;
