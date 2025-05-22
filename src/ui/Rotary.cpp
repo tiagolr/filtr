@@ -1,7 +1,7 @@
 #include "Rotary.h"
 #include "../PluginProcessor.h"
 
-Rotary::Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric, bool isAudioKnob)
+Rotary::Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric, unsigned int color)
     : juce::SettableTooltipClient()
     , juce::Component()
     , audioProcessor(p)
@@ -10,6 +10,7 @@ Rotary::Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, 
     , format(format)
     , isSymmetric(isSymmetric)
     , isAudioKnob(isAudioKnob)
+    , color(color)
 {
     setName(name);
     audioProcessor.params.addParameterListener(paramId, this);
@@ -157,7 +158,7 @@ void Rotary::draw_rotary_slider(juce::Graphics& g, float slider_pos) {
     arcKnob.addCentredArc(bounds.getWidth() / 2.0f, bounds.getHeight() / 2.0f - 8.0f, radius + 5.0f, radius + 5.0f, 0,-deg130, deg130, true);
     g.strokePath(arcKnob, PathStrokeType(3.0, PathStrokeType::JointStyle::curved, PathStrokeType::rounded));
 
-    g.setColour(Colour(isAudioKnob ? COLOR_AUDIO : COLOR_ACTIVE));
+    g.setColour(Colour(color));
     if ((isSymmetric && slider_pos != 0.5f) || (!isSymmetric && slider_pos)) {
         juce::Path arcActive;
         arcActive.addCentredArc(bounds.getWidth() / 2.0f, bounds.getHeight() / 2.0f - 8.0f, radius + 5.0f, radius + 5.0f, 0, isSymmetric ? 0 : -deg130, angle, true);

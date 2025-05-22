@@ -37,6 +37,7 @@ public:
     void resized() override;
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void drawGear(Graphics&g, Rectangle<int> bounds, float radius, int segs, Colour color, Colour bg);
+    void drawChain(Graphics&g, Rectangle<int> boudns, Colour color, Colour bg);
     void drawUndoButton(Graphics& g, juce::Rectangle<float> area, bool invertx, Colour color);
 
 private:
@@ -46,6 +47,7 @@ private:
     std::unique_ptr<About> about;
 
     std::vector<std::unique_ptr<TextButton>> patterns;
+    std::vector<std::unique_ptr<TextButton>> respatterns;
 
 #if defined(DEBUG)
     juce::TextButton presetExport;
@@ -79,9 +81,10 @@ private:
     std::unique_ptr<Rotary> offset;
     
     ComboBox algoMenu;
+    TextButton linkPatsButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;
     TextButton cutoffButton;
-    TextButton resonanceButton;
+    TextButton resButton;
     ComboBox filterTypeMenu;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterTypeAttachment;
     ComboBox filterModeMenu;

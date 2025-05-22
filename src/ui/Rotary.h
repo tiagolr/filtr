@@ -23,7 +23,7 @@ enum RotaryLabel {
 
 class Rotary : public juce::SettableTooltipClient, public juce::Component, private juce::AudioProcessorValueTreeState::Listener {
 public:
-    Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric = false, bool isAudioKnob = false);
+    Rotary(FILTRAudioProcessor& p, juce::String paramId, juce::String name, RotaryLabel format, bool isSymmetric = false, unsigned int color = COLOR_ACTIVE);
     ~Rotary() override;
     void paint(juce::Graphics& g) override;
 
@@ -42,6 +42,7 @@ protected:
     FILTRAudioProcessor& audioProcessor;
 
 private:
+    unsigned int color = COLOR_ACTIVE;
     bool isSymmetric;
     bool isAudioKnob;
     float deg130 = 130.0f * juce::MathConstants<float>::pi / 180.0f;

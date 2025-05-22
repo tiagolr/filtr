@@ -525,6 +525,8 @@ void FILTRAudioProcessor::resetFilters(double srate)
     lflerp = flerp;
     lfdrive = fdrive;
     lfmorph = fmorph;
+
+    MessageManager::callAsync([this]{ sendChangeMessage(); });
 }
 
 void FILTRAudioProcessor::releaseResources()
@@ -590,6 +592,10 @@ void FILTRAudioProcessor::onSlider()
     int pat = (int)params.getRawParameterValue("pattern")->load();
     if (pat != pattern->index + 1 && pat != queuedPattern) {
         queuePattern(pat);
+    }
+    int respat = (int)params.getRawParameterValue("respattern")->load();
+    if (respat != respattern->index + 1 - 12 && respat != queuedResPattern) {
+        queueResPattern(respat);
     }
 
     auto tension = (double)params.getRawParameterValue("tension")->load();
@@ -1173,8 +1179,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             double newypos = getY(xpos, min, max);
             ypos = value->process(newypos, newypos > ypos);
 
-            auto lsample = (double)buffer.getSample(0, sample);
-            auto rsample = (double)buffer.getSample(1 % audioInputs, sample);
+            auto lsample = (double)upsampledBlock.getSample(0, sample);
+            auto rsample = (double)upsampledBlock.getSample(1 % audioInputs, sample);
             applyFilter(sample, ypos, lsample, rsample);
             double viewx = (alwaysPlaying || midiTrigger) ? xpos : (trigpos + trigphase) - std::floor(trigpos + trigphase);
             processDisplaySample(sample, viewx, lsample, rsample);
@@ -1185,8 +1191,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             int latency = (int)latBufferL.size();
 
             // read audio samples
-            double lsample = (double)buffer.getSample(0, sample);
-            double rsample = (double)buffer.getSample(audioInputs > 1 ? 1 : 0, sample);
+            double lsample = (double)upsampledBlock.getSample(0, sample);
+            double rsample = (double)upsampledBlock.getSample(audioInputs > 1 ? 1 : 0, sample);
             latBufferL[latpos] = lsample;
             latBufferR[latpos] = rsample;
 
@@ -1194,8 +1200,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             double lsidesample = 0.0;
             double rsidesample = 0.0;
             if (useSidechain && sideInputs) {
-                lsidesample = (double)buffer.getSample(audioInputs, sample);
-                rsidesample = (double)buffer.getSample(sideInputs > 1 ? audioInputs + 1 : audioInputs, sample);
+                lsidesample = (double)buffer.getSample(audioInputs, sample / 2);
+                rsidesample = (double)buffer.getSample(sideInputs > 1 ? audioInputs + 1 : audioInputs, sample / 2);
             }
 
             // Detect audio transients

@@ -29,8 +29,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     logoLabel.setColour(juce::Label::ColourIds::textColourId, Colours::white);
     logoLabel.setFont(FontOptions(26.0f));
     logoLabel.setText("FILT-R", NotificationType::dontSendNotification);
-    logoLabel.setBounds(col, row-3, 100, 30);
-    col += 110;
+    logoLabel.setBounds(col, row-3, 90, 30);
+    col += 85;
 
 #if defined(DEBUG)
     addAndMakeVisible(presetExport);
@@ -68,7 +68,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     syncMenu.addItem("1/1T", 13);
     syncMenu.addSectionHeading("Dotted");
     syncMenu.addItem("1/16.", 14);
-    syncMenu.addItem("1/8.", 15);
+    syncMenu.addItem("1/8.", 20);
     syncMenu.addItem("1/4.", 16);
     syncMenu.addItem("1/2.", 17);
     syncMenu.addItem("1/1.", 18);
@@ -122,12 +122,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     settingsButton->onScaleChange = [this]() { setScaleFactor(audioProcessor.scale); };
     settingsButton->toggleUIComponents = [this]() { toggleUIComponents(); };
     settingsButton->toggleAbout = [this]() { about.get()->setVisible(true); };
-    settingsButton->setBounds(col-15,row,25,25);
-
-    col -= 25;
-    mixDial = std::make_unique<TextDial>(p, "mix", "Mix ", "", TextDialLabel::tdPercx100, 16.f, COLOR_NEUTRAL_LIGHT);
-    addAndMakeVisible(*mixDial);
-    mixDial->setBounds(col - 65, row, 65, 25);
+    settingsButton->setBounds(col-20,row,25,25);
 
     // SECOND ROW
 
@@ -140,8 +135,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         btn->setClickingTogglesState (false);
         btn->setColour (TextButton::textColourOffId,  Colour(COLOR_BG));
         btn->setColour (TextButton::textColourOnId,   Colour(COLOR_BG));
-        btn->setColour (TextButton::buttonColourId,   Colour(COLOR_ACTIVE).darker(0.8f));
-        btn->setColour (TextButton::buttonOnColourId, Colour(COLOR_ACTIVE));
+        btn->setColour (TextButton::buttonColourId,   Colours::white.darker(0.8f));
+        btn->setColour (TextButton::buttonOnColourId, Colours::white);
         btn->setBounds (col + i * 22, row, 22+1, 25); // width +1 makes it seamless on higher DPI
         btn->setConnectedEdges (((i != 0) ? Button::ConnectedOnLeft : 0) | ((i != 11) ? Button::ConnectedOnRight : 0));
         btn->setComponentID(i == 0 ? "leftPattern" : i == 11 ? "rightPattern" : "pattern");
@@ -155,16 +150,60 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         };
         addAndMakeVisible(*btn);
         patterns.push_back(std::move(btn));
+
+        btn = std::make_unique<TextButton>(std::to_string(i + 1));
+        btn->setRadioGroupId (1338);
+        btn->setToggleState(audioProcessor.respattern->index == i + 12, dontSendNotification);
+        btn->setClickingTogglesState (false);
+        btn->setColour (TextButton::textColourOffId,  Colour(COLOR_BG));
+        btn->setColour (TextButton::textColourOnId,   Colour(COLOR_BG));
+        btn->setColour (TextButton::buttonColourId,   Colour(COLOR_ACTIVE).darker(0.8f));
+        btn->setColour (TextButton::buttonOnColourId, Colour(COLOR_ACTIVE));
+        btn->setBounds (col + i * 22, row, 22+1, 25);
+        btn->setConnectedEdges (((i != 0) ? Button::ConnectedOnLeft : 0) | ((i != 11) ? Button::ConnectedOnRight : 0));
+        btn->setComponentID(i == 0 ? "leftPattern" : i == 11 ? "rightPattern" : "pattern");
+        btn->onClick = [i, this]() {
+            MessageManager::callAsync([i, this] {
+                auto param = audioProcessor.params.getParameter("respattern");
+                param->beginChangeGesture();
+                param->setValueNotifyingHost(param->convertTo0to1((float)(i + 1)));
+                param->endChangeGesture();
+            });
+        };
+        addAndMakeVisible(*btn);
+        respatterns.push_back(std::move(btn));
     }
     col += 265 + 10;
+
+    addAndMakeVisible(linkPatsButton);
+    linkPatsButton.setTooltip("Link cutoff and resonance patterns");
+    linkPatsButton.setComponentID("button");
+    linkPatsButton.setBounds(col,row,25,25);
+    linkPatsButton.setAlpha(0.0f);
+    linkPatsButton.onClick = [this] {
+        MessageManager::callAsync([this] {
+            bool patsync = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load();
+            patsync = !patsync;
+            audioProcessor.params.getParameter("linkpats")->setValueNotifyingHost(patsync ? 1.0f : 0.0f);
+            if (patsync) {
+                int pattern = (int)audioProcessor.params.getRawParameterValue("pattern")->load();
+                int respattern = (int)audioProcessor.params.getRawParameterValue("respattern")->load();
+                if (respattern != pattern) {
+                    audioProcessor.queueResPattern(pattern);
+                }
+            }
+            toggleUIComponents();
+        });
+    };
+    col += 35;
 
     addAndMakeVisible(patSyncLabel);
     patSyncLabel.setColour(juce::Label::ColourIds::textColourId, Colour(COLOR_NEUTRAL_LIGHT));
     patSyncLabel.setFont(FontOptions(16.0f));
     patSyncLabel.setText("Pat. Sync", NotificationType::dontSendNotification);
-    patSyncLabel.setJustificationType(Justification::centred);
-    patSyncLabel.setBounds(col, row, 80, 25);
-    col += 90;
+    patSyncLabel.setJustificationType(Justification::centredLeft);
+    patSyncLabel.setBounds(col, row, 70, 25);
+    col += 80;
 
     addAndMakeVisible(patSyncMenu);
     patSyncMenu.setTooltip("Changes pattern in sync with song position during playback");
@@ -177,6 +216,12 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     patSyncMenu.addItem("4 Beats", 6);
     patSyncMenu.setBounds(col, row, 75, 25);
     patSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "patsync", patSyncMenu);
+
+    // 2ND ROW RIGHT
+    col = getWidth() - PLUG_PADDING;
+    mixDial = std::make_unique<TextDial>(p, "mix", "Mix ", "", TextDialLabel::tdPercx100, 16.f, COLOR_NEUTRAL_LIGHT);
+    addAndMakeVisible(*mixDial);
+    mixDial->setBounds(col - 65, row, 65, 25);
 
     // KNOBS ROW
     row += 35;
@@ -204,7 +249,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     gain = std::make_unique<Rotary>(p, "gain", "Gain", RotaryLabel::gainTodB1f, true);
     addAndMakeVisible(*gain);
     gain->setBounds(col,row,80,65);
-    col += 95;
+    col += 75;
 
     rate = std::make_unique<Rotary>(p, "rate", "Rate", RotaryLabel::hz1f);
     addAndMakeVisible(*rate);
@@ -243,27 +288,27 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     // AUDIO KNOBS
     col = PLUG_PADDING;
 
-    threshold = std::make_unique<Rotary>(p, "threshold", "Thres", RotaryLabel::gainTodB1f, false, true);
+    threshold = std::make_unique<Rotary>(p, "threshold", "Thres", RotaryLabel::gainTodB1f, false, COLOR_AUDIO);
     addAndMakeVisible(*threshold);
     threshold->setBounds(col,row,80,65);
     col += 75;
 
-    sense = std::make_unique<Rotary>(p, "sense", "Sense", RotaryLabel::percx100, false, true);
+    sense = std::make_unique<Rotary>(p, "sense", "Sense", RotaryLabel::percx100, false, COLOR_AUDIO);
     addAndMakeVisible(*sense);
     sense->setBounds(col,row,80,65);
     col += 75;
 
-    lowcut = std::make_unique<Rotary>(p, "lowcut", "Low Cut", RotaryLabel::hzHp, false, true);
+    lowcut = std::make_unique<Rotary>(p, "lowcut", "Low Cut", RotaryLabel::hzHp, false, COLOR_AUDIO);
     addAndMakeVisible(*lowcut);
     lowcut->setBounds(col,row,80,65);
     col += 75;
 
-    highcut = std::make_unique<Rotary>(p, "highcut", "Hi Cut", RotaryLabel::hzLp, false, true);
+    highcut = std::make_unique<Rotary>(p, "highcut", "Hi Cut", RotaryLabel::hzLp, false, COLOR_AUDIO);
     addAndMakeVisible(*highcut);
     highcut->setBounds(col,row,80,65);
     col += 75;
 
-    offset = std::make_unique<Rotary>(p, "offset", "Offset", RotaryLabel::audioOffset, true, true);
+    offset = std::make_unique<Rotary>(p, "offset", "Offset", RotaryLabel::audioOffset, true, COLOR_AUDIO);
     addAndMakeVisible(*offset);
     offset->setBounds(col,row,80,65);
     col += 75;
@@ -305,13 +350,80 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         });
     };
 
-    // THIRD ROW
+    // 3RD ROW
     col = PLUG_PADDING;
     row += 75;
+
+    addAndMakeVisible(cutoffButton);
+    cutoffButton.setButtonText("Cutoff");
+    cutoffButton.setComponentID("button");
+    cutoffButton.setColour(TextButton::buttonColourId, Colours::white);
+    cutoffButton.setColour(TextButton::buttonOnColourId, Colours::white);
+    cutoffButton.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
+    cutoffButton.setColour(TextButton::textColourOffId, Colours::white);
+    cutoffButton.setBounds(col,row,90,25);
+    cutoffButton.onClick = [this]() {
+        audioProcessor.setResonanceEditMode(false);
+    };
+    col += 100;
+
+    addAndMakeVisible(resButton);
+    resButton.setButtonText("Res");
+    resButton.setComponentID("button");
+    resButton.setBounds(col,row,90,25);
+    resButton.onClick = [this]() {
+        audioProcessor.setResonanceEditMode(true);
+    };
+    col += 100;
+    col += 30;
+
+    addAndMakeVisible(filterTypeMenu);
+    filterTypeMenu.addSectionHeading("Filter Type");
+    filterTypeMenu.addItem("Linear 12", 1);
+    filterTypeMenu.addItem("Linear 24", 2);
+    filterTypeMenu.addItem("Analog 12", 3);
+    filterTypeMenu.addItem("Analog 24", 4);
+    filterTypeMenu.addItem("Moog 12", 5);
+    filterTypeMenu.addItem("Moog 24", 6);
+    filterTypeMenu.addItem("MS-20", 7);
+    filterTypeMenu.addItem("303", 8);
+    filterTypeMenu.addItem("Phaser +", 9);
+    filterTypeMenu.addItem("Phaser -", 10);
+    filterTypeMenu.setBounds(col, row, 90, 25);
+    filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "ftype", filterTypeMenu);
+    col += 100;
+
+    addAndMakeVisible(filterModeMenu);
+    filterModeMenu.addSectionHeading("Filter Mode");
+    filterModeMenu.addItem("LP", 1);
+    filterModeMenu.addItem("BP", 2);
+    filterModeMenu.addItem("HP", 3);
+    filterModeMenu.addItem("Notch", 4);
+    filterModeMenu.addItem("Peak", 5);
+    filterModeMenu.setBounds(col, row, 90, 25);
+    filterModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "fmode", filterModeMenu);
+    col += 100;
+
+    col = getWidth() - PLUG_PADDING;
+    addAndMakeVisible(pasteButton);
+    pasteButton.setButtonText("Paste");
+    pasteButton.setComponentID("button");
+    pasteButton.setBounds(col-60, row, 60, 25);
+    col -= 70;
+
+    addAndMakeVisible(copyButton);
+    copyButton.setButtonText("Copy");
+    copyButton.setComponentID("button");
+    copyButton.setBounds(col-60, row, 60, 25);
+    col -= 70;
+
+    // 4th ROW
+    col = PLUG_PADDING;
+    row += 35;
     addAndMakeVisible(paintButton);
     paintButton.setButtonText("Paint");
     paintButton.setComponentID("button");
-    paintButton.setBounds(col, row, 75, 25);
+    paintButton.setBounds(col, row, 90, 25);
     paintButton.onClick = [this]() {
         if (audioProcessor.uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Paint) {
             audioProcessor.setUIMode(UIMode::Normal);
@@ -320,12 +432,12 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
             audioProcessor.togglePaintMode();
         }
     };
-    col += 85;
+    col += 100;
 
     addAndMakeVisible(sequencerButton);
     sequencerButton.setButtonText("Seq");
     sequencerButton.setComponentID("button");
-    sequencerButton.setBounds(col, row, 75, 25);
+    sequencerButton.setBounds(col, row, 90, 25);
     sequencerButton.onClick = [this]() {
         if (audioProcessor.uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Seq) {
             audioProcessor.setUIMode(UIMode::Normal);
@@ -335,7 +447,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         }
     };
 
-    col += 85;
+    col += 100;
     addAndMakeVisible(pointLabel);
     pointLabel.setText("p", dontSendNotification);
     pointLabel.setBounds(col-2,row,25,25);
@@ -353,14 +465,14 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     pointMenu.addItem("Triangle", 6);
     pointMenu.addItem("Stairs", 7);
     pointMenu.addItem("Smooth St", 8);
-    pointMenu.setBounds(col, row, 75, 25);
+    pointMenu.setBounds(col, row, 90, 25);
     pointMenu.setSelectedId(audioProcessor.pointMode + 1, dontSendNotification);
     pointMenu.onChange = [this]() {
         MessageManager::callAsync([this]() {
             audioProcessor.pointMode = pointMenu.getSelectedId() - 1;
         });
     };
-    col += 85;
+    col += 100;
 
     addAndMakeVisible(loopButton);
     loopButton.setTooltip("Toggle continuous play");
@@ -375,7 +487,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     };
     col += 35;
 
-    // THIRD ROW RIGHT
+    // 4TH ROW RIGHT
     col = getWidth() - PLUG_PADDING - 60;
 
     addAndMakeVisible(snapButton);
@@ -392,7 +504,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     addAndMakeVisible(*gridSelector);
     gridSelector->setBounds(col,row,50,25);
 
-    col -= 10+15+5;
+    col -= 10+20+5;
     addAndMakeVisible(nudgeRightButton);
     nudgeRightButton.setAlpha(0.f);
     nudgeRightButton.setBounds(col, row, 20, 25);
@@ -410,7 +522,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         });
     };
 
-    col -= 10+15-5;
+    col -= 10+20-5;
     addAndMakeVisible(nudgeLeftButton);
     nudgeLeftButton.setAlpha(0.f);
     nudgeLeftButton.setBounds(col, row, 20, 25);
@@ -488,7 +600,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     latencyWarning.setColour(Label::backgroundColourId, Colours::black.withAlpha(0.5f));
     latencyWarning.setJustificationType(Justification::centred);
     latencyWarning.setColour(Label::textColourId, Colour(COLOR_ACTIVE));
-    latencyWarning.setBounds(view->getBounds().getCentreX() - 150, PLUG_HEIGHT - 20 - 25, 300, 25);
+    latencyWarning.setBounds(view->getBounds().getCentreX() - 200, PLUG_HEIGHT - 20 - 25, 300, 25);
 
     // ABOUT
     about = std::make_unique<About>();
@@ -535,6 +647,13 @@ void FILTRAudioProcessorEditor::parameterChanged (const juce::String& parameterI
 void FILTRAudioProcessorEditor::toggleUIComponents()
 {
     patterns[audioProcessor.pattern->index].get()->setToggleState(true, dontSendNotification);
+    respatterns[audioProcessor.respattern->index - 12].get()->setToggleState(true, dontSendNotification);
+    bool showResPatterns = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load() == false && audioProcessor.resonanceEditMode;
+    for (int i = 0; i < 12; ++i) {
+        patterns[i]->setVisible(!showResPatterns);
+        respatterns[i]->setVisible(showResPatterns);
+    }
+
     auto ftype = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
     auto trigger = (int)audioProcessor.params.getRawParameterValue("trigger")->load();
     auto triggerColor = trigger == 0 ? COLOR_ACTIVE : trigger == 1 ? COLOR_MIDI : COLOR_AUDIO;
@@ -551,7 +670,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 
     int sync = (int)audioProcessor.params.getRawParameterValue("sync")->load();
     bool showAudioKnobs = audioProcessor.showAudioKnobs;
-    bool showMorph = ftype == kPhaserPos || ftype != kPhaserNeg;
+    bool showMorph = ftype == kPhaserPos || ftype == kPhaserNeg;
 
     // layout knobs
     cutoff->setVisible(!showAudioKnobs);
@@ -577,7 +696,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     if (!showAudioKnobs) {
         auto col = gain->getBounds().getX();
         auto row = gain->getBounds().getY();
-        col += 95;
+        col += 75;
 
         rate->setVisible(sync == 0);
         if (rate->isVisible()) col += 75;
@@ -603,6 +722,9 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
         col += 75;
         tensionrel->setTopLeftPosition(col, row);
     }
+
+    cutoffButton.setToggleState(!audioProcessor.resonanceEditMode, dontSendNotification);
+    resButton.setToggleState(audioProcessor.resonanceEditMode, dontSendNotification);
 
     useSidechain.setVisible(showAudioKnobs);
     useMonitor.setVisible(showAudioKnobs);
@@ -655,9 +777,18 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     g.setGradientFill(grad);
     g.fillRect(bounds);
 
+    // draw point mode icon
     g.setColour(Colour(COLOR_NEUTRAL));
     g.drawEllipse(pointLabel.getBounds().expanded(-2,-2).toFloat(), 1.f);
     g.fillEllipse(pointLabel.getBounds().expanded(-10,-10).toFloat());
+
+    // draw filter icon
+    bounds = Rectangle<int>(resButton.getRight() + 10, resButton.getY(), 20, 25).expanded(0, -7).toFloat();
+    Path fpath;
+    fpath.startNewSubPath(bounds.getX(), bounds.getY());
+    fpath.lineTo(bounds.getX()+6, bounds.getY());
+    fpath.cubicTo((bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(),(bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(), bounds.getRight(), bounds.getBottom());
+    g.strokePath(fpath, PathStrokeType(1.f));
 
     // draw loop play button
     auto trigger = (int)audioProcessor.params.getRawParameterValue("trigger")->load();
@@ -682,7 +813,6 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     }
 
     // draw audio settings button outline
-    g.setColour(Colour(COLOR_ACTIVE));
     if (audioSettingsButton.isVisible() && audioProcessor.showAudioKnobs) {
         g.setColour(Colour(COLOR_AUDIO));
         g.fillRoundedRectangle(audioSettingsButton.getBounds().toFloat(), 3.0f);
@@ -690,6 +820,17 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     }
     else if (audioSettingsButton.isVisible()) {
         drawGear(g, audioSettingsButton.getBounds(), 10, 6, Colour(COLOR_AUDIO), Colour(COLOR_BG));
+    }
+
+    // draw pattern link button
+    bool linkpats = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load();
+    g.setColour(Colour(COLOR_ACTIVE));
+    if (linkpats) {
+        g.fillRoundedRectangle(linkPatsButton.getBounds().toFloat(), 3.0f);
+        drawChain(g, linkPatsButton.getBounds(), Colour(COLOR_BG), Colour(COLOR_ACTIVE));
+    }
+    else {
+        drawChain(g, linkPatsButton.getBounds(), Colour(COLOR_ACTIVE), Colour(COLOR_BG));
     }
 
     // draw rotate pat triangles
@@ -749,6 +890,22 @@ void FILTRAudioProcessorEditor::drawGear(Graphics& g, Rectangle<int> bounds, flo
     g.fillEllipse(x-iradius, y-iradius, iradius*2.f, iradius*2.f);
 }
 
+void FILTRAudioProcessorEditor::drawChain(Graphics& g, Rectangle<int> bounds, Colour color, Colour background)
+{
+    (void)background;
+    float x = bounds.toFloat().getCentreX();
+    float y = bounds.toFloat().getCentreY();
+    float rx = 10.f;
+    float ry = 5.f;
+
+    g.setColour(color);
+    Path p;
+    p.addRoundedRectangle(x-rx, y-ry/2, rx, ry, 2.0f, 2.f);
+    p.addRoundedRectangle(x, y-ry/2, rx, ry, 2.0f, 2.f);
+    p.applyTransform(AffineTransform::rotation(MathConstants<float>::pi / 4.f, x, y));
+    g.strokePath(p, PathStrokeType(2.f));
+}
+
 void FILTRAudioProcessorEditor::drawUndoButton(Graphics& g, juce::Rectangle<float> area, bool invertx, Colour color)
 {
         auto bounds = area;
@@ -799,7 +956,7 @@ void FILTRAudioProcessorEditor::resized()
     auto col = getWidth() - PLUG_PADDING;
     auto bounds = settingsButton->getBounds();
     settingsButton->setBounds(bounds.withX(col - bounds.getWidth()));
-    mixDial->setBounds(mixDial->getBounds().withRightX(settingsButton->getBounds().getX() - 10));
+    mixDial->setBounds(mixDial->getBounds().withRightX(col));
 
     // knobs row
     bounds = audioDisplay->getBounds();
@@ -809,7 +966,11 @@ void FILTRAudioProcessorEditor::resized()
     bounds = useMonitor.getBounds();
     useMonitor.setBounds(bounds.withX(col - bounds.getWidth()));
 
-    // third row
+    // 3rd row
+    pasteButton.setBounds(pasteButton.getBounds().withRightX(col));
+    copyButton.setBounds(copyButton.getBounds().withRightX(pasteButton.getX() - 10));
+
+    // 4th row
     bounds = snapButton.getBounds();
     auto dx = (col - bounds.getWidth()) - bounds.getX();
     snapButton.setBounds(snapButton.getBounds().translated(dx, 0));
