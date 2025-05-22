@@ -141,6 +141,7 @@ public:
     int64_t queuedResPatternCountdown = 0; // samples counter until queued pattern is applied
     double xpos = 0.0; // envelope x pos (0..1)
     double ypos = 0.0; // envelope y pos (0..1)
+    double yres = 0.0; // resonance envelope y pos
     double trigpos = 0.0; // used by trigger (Audio and MIDI) to detect one one shot envelope play
     double trigposSinceHit = 1.0; // used by audioIgnoreHitsWhilePlaying option
     double trigphase = 0.0; // phase when trigger occurs, used to sync the background wave draw
@@ -152,7 +153,8 @@ public:
     double ltension = -10.0;
     double ltensionatk = -10.0;
     double ltensionrel = -10.0;
-    RCSmoother* value; // smooths envelope value
+    RCSmoother* value; // smooths cutoff envelope value
+    RCSmoother* resvalue; // smooths resonance envelope value
     bool showLatencyWarning = false;
 
     // Filter State
@@ -254,6 +256,7 @@ public:
     void toggleUseSidechain();
     void toggleMonitorSidechain();
     double getY(double x, double min, double max);
+    double getYres(double x, double min, double max);
     void queuePattern(int patidx);
     void queueResPattern(int patidx);
 

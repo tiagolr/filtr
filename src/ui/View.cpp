@@ -35,11 +35,11 @@ void View::timerCallback()
         multiselect.recalcSelectionArea();
         patternID = audioProcessor.viewPattern->versionID;
     }
-    if (audioProcessor.queuedPattern && isEnabled()) {
+    if ((audioProcessor.queuedPattern || audioProcessor.queuedResPattern) && isEnabled()) {
         setAlpha(0.5f);
         setEnabled(false);
     }
-    else if (!audioProcessor.queuedPattern && !isEnabled()) {
+    else if (!audioProcessor.queuedPattern && !audioProcessor.queuedResPattern && !isEnabled()) {
         setAlpha(1.f);
         setEnabled(true);
     }
@@ -89,7 +89,11 @@ void View::paint(Graphics& g) {
 
     drawGrid(g);
     multiselect.drawBackground(g);
-    drawSegments(g);
+
+    if (uimode != UIMode::PaintEdit) {
+        drawSegments(g, false);
+    }
+    drawSegments(g, true);
 
     if (uimode == UIMode::Normal || uimode == UIMode::PaintEdit) {
         drawMidPoints(g);
@@ -166,10 +170,15 @@ void View::drawGrid(Graphics& g)
     }
 }
 
-void View::drawSegments(Graphics& g)
+void View::drawSegments(Graphics& g, bool isMainPattern)
 {
+    auto& pat = isMainPattern 
+        ? *audioProcessor.viewPattern 
+        : *audioProcessor.viewSubPattern;
+    bool isResPattern = pat.index >= 12 && pat.index <= 24;
+
     double lastX = winx;
-    double lastY = audioProcessor.viewPattern->get_y_at(0) * winh + winy;
+    double lastY = pat.get_y_at(0) * winh + winy;
 
     Path linePath;
     Path shadePath;
@@ -181,7 +190,7 @@ void View::drawSegments(Graphics& g)
     for (int i = 0; i < winw + 1; ++i)
     {
         double px = double(i) / double(winw);
-        double py = audioProcessor.viewPattern->get_y_at(px) * winh + winy;
+        double py = pat.get_y_at(px) * winh + winy;
         float x = (float)(i + winx);
         float y = (float)py;
 
@@ -192,34 +201,41 @@ void View::drawSegments(Graphics& g)
     shadePath.lineTo((float)(winw + winx), (float)(winy + winh)); // Bottom-right
     shadePath.closeSubPath();
 
-    g.setColour(Colours::white.withAlpha(0.125f));
-    g.fillPath(shadePath);
-    g.setColour(Colours::white);
+    
+    Colour color = isResPattern ? Colour(COLOR_ACTIVE) : Colours::white;
+
+    if (isMainPattern) {
+        g.setColour(color.withAlpha(0.125f));
+        g.fillPath(shadePath);
+    }
+
+    g.setColour(color.withAlpha(isMainPattern ? 1.0f : 0.35f));
     g.strokePath(linePath, PathStrokeType(1.f));
 }
 
 void View::drawPoints(Graphics& g)
 {
     auto& points = audioProcessor.viewPattern->points;
+    int index = audioProcessor.viewPattern->index;
+    bool isResPattern = index >= 12 && index <= 24;
 
-    g.setColour(Colours::white);
+    Colour color = isResPattern ? Colour(COLOR_ACTIVE) : Colours::white;
+    g.setColour(color);
     for (auto pt = points.begin(); pt != points.end(); ++pt) {
         auto xx = pt->x * winw + winx;
         auto yy = pt->y * winh + winy;
         g.fillEllipse((float)(xx - POINT_RADIUS), (float)(yy - 4.0), (float)(POINT_RADIUS * 2), (float)(POINT_RADIUS * 2));
     }
 
-    g.setColour(Colours::white.withAlpha(0.5f));
-    if (selectedPoint == -1 && selectedMidpoint == -1 && hoverPoint > -1)
-    {
+    if (selectedPoint == -1 && selectedMidpoint == -1 && hoverPoint > -1) {
+        g.setColour(color.withAlpha(0.5f));
         auto xx = points[hoverPoint].x * winw + winx;
         auto yy = points[hoverPoint].y * winh + winy;
         g.fillEllipse((float)(xx - HOVER_RADIUS), (float)(yy - HOVER_RADIUS), (float)HOVER_RADIUS * 2.f, (float)HOVER_RADIUS * 2.f);
     }
 
-    g.setColour(Colours::red.withAlpha(0.5f));
-    if (selectedPoint != -1)
-    {
+    if (selectedPoint != -1) {
+        g.setColour(Colours::red.withAlpha(0.5f));
         auto xx = points[selectedPoint].x * winw + winx;
         auto yy = points[selectedPoint].y * winh + winy;
         g.fillEllipse((float)(xx - 4.0), (float)(yy-4.0), 8.0f, 8.0f);
@@ -380,6 +396,7 @@ void View::mouseDown(const juce::MouseEvent& e)
         paintTool.mouseDown(e);
     }
     else if (e.mods.isLeftButtonDown()) {
+        // click multiselection
         if (multiselect.mouseHover > -1) {
             setMouseCursor(MouseCursor::NoCursor);
             multiselect.mouseDown(e);
@@ -390,11 +407,13 @@ void View::mouseDown(const juce::MouseEvent& e)
         if (selectedPoint == -1)
             selectedMidpoint = getHoveredMidpoint(x, y);
 
+        // click no point, start drag selection
         if (selectedPoint == -1 && selectedMidpoint == -1) {
             preSelectionStart = e.getPosition();
             preSelectionEnd = e.getPosition();
         }
 
+        // click midpoint or point
         if (selectedPoint > -1 || selectedMidpoint > -1) {
             if (selectedPoint > -1) {
                 setMouseCursor(MouseCursor::NoCursor);
@@ -503,7 +522,7 @@ void View::mouseMove(const juce::MouseEvent& e)
 
     int x = pos.x;
     int y = pos.y;
-    hoverPoint = getHoveredPoint(x , y);
+    hoverPoint = getHoveredPoint(x, y);
     if (hoverPoint == -1)
         hoverMidpoint = getHoveredMidpoint(x, y);
 }

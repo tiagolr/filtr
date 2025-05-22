@@ -34,7 +34,7 @@ public:
     void paint(Graphics& g) override;
     void drawWave(Graphics& g, std::vector<double>& samples, Colour color) const;
     void drawGrid(Graphics& g);
-    void drawSegments(Graphics& g);
+    void drawSegments(Graphics& g, bool isMainPattern);
     void drawMidPoints(Graphics& g);
     void drawPoints(Graphics& g);
     void drawSeek(Graphics& g);
