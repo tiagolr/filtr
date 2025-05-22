@@ -52,7 +52,6 @@ protected:
 
 private:
     RotaryType type;
-    bool lresEditMode;
     unsigned int color = COLOR_ACTIVE;
     bool isSymmetric;
     bool isAudioKnob;

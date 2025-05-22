@@ -535,16 +535,17 @@ void View::mouseDrag(const juce::MouseEvent& e)
     if (!isEnabled() || patternID != audioProcessor.viewPattern->versionID)
         return;
 
-    audioProcessor.updateCutoffFromPattern();
-    audioProcessor.updateResFromPattern();
-
     if (audioProcessor.uimode == UIMode::Seq) {
         audioProcessor.sequencer->mouseDrag(e);
+        audioProcessor.updateCutoffFromPattern();
+        audioProcessor.updateResFromPattern();
         return;
     }
 
     if (audioProcessor.uimode == UIMode::Paint) {
         paintTool.mouseDrag(e);
+        audioProcessor.updateCutoffFromPattern();
+        audioProcessor.updateResFromPattern();
         return;
     }
 
@@ -554,6 +555,8 @@ void View::mouseDrag(const juce::MouseEvent& e)
 
     if (multiselect.mouseHover > -1 && e.mods.isLeftButtonDown()) {
         multiselect.mouseDrag(e);
+        audioProcessor.updateCutoffFromPattern();
+        audioProcessor.updateResFromPattern();
         return;
     }
 
@@ -595,6 +598,8 @@ void View::mouseDrag(const juce::MouseEvent& e)
             if (point.x <= prev.x) point.x = prev.x + 1e-8;
         }
         audioProcessor.viewPattern->buildSegments();
+        audioProcessor.updateCutoffFromPattern();
+        audioProcessor.updateResFromPattern();
     }
 
     else if (selectedMidpoint > -1) {
@@ -624,7 +629,6 @@ void View::mouseDoubleClick(const juce::MouseEvent& e)
     }
 
     if (audioProcessor.uimode == UIMode::Seq) {
-        audioProcessor.sequencer->mouseDrag(e);
         return;
     }
 
@@ -669,6 +673,8 @@ void View::mouseDoubleClick(const juce::MouseEvent& e)
         }
     }
 
+    audioProcessor.updateCutoffFromPattern();
+    audioProcessor.updateResFromPattern();
     audioProcessor.createUndoPointFromSnapshot(snapshot);
     audioProcessor.viewPattern->buildSegments();
 }
@@ -703,6 +709,8 @@ bool View::keyPressed(const juce::KeyPress& key)
     if (key == KeyPress::deleteKey && !multiselect.selectionPoints.empty()) {
         audioProcessor.createUndoPoint();
         multiselect.deleteSelectedPoints();
+        audioProcessor.updateCutoffFromPattern();
+        audioProcessor.updateResFromPattern();
         return true;
     }
 

@@ -83,8 +83,6 @@ private:
     ComboBox algoMenu;
     TextButton linkPatsButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;
-    TextButton cutoffButton;
-    TextButton resButton;
     ComboBox filterTypeMenu;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterTypeAttachment;
     ComboBox filterModeMenu;

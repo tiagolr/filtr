@@ -64,6 +64,20 @@ int Pattern::insertPoint(double x, double y, double tension, int type)
     return pidx == points.end() ? -1 : (int)std::distance(points.begin(), pidx);
 };
 
+int Pattern::insertPointUnsafe(double x, double y, double tension, int type)
+{
+    auto id = pointsIDCounter;
+    pointsIDCounter += 1;
+
+    const PPoint p = { id, x, y, tension, type };
+    points.push_back(p);
+    sortPoints();
+    clearTransform();
+
+    auto pidx = std::find_if(points.begin(), points.end(), [id](const PPoint& p) { return p.id == id; });
+    return pidx == points.end() ? -1 : (int)std::distance(points.begin(), pidx);
+};
+
 void Pattern::removePoint(double x, double y)
 {
     std::lock_guard<std::mutex> lock(pointsmtx);
@@ -149,6 +163,21 @@ void Pattern::rotate(double x) {
     incrementVersion();
 }
 
+void Pattern::rotateUnsafe(double x) {
+    clearTransform();
+    if (x > 1.0) x = 1.0;
+    if (x < -1.0) x = -1.0;
+    for (auto p = points.begin(); p != points.end(); ++p) {
+        if (p->x == 0.0) p->x += 1e-9; // FIX - distinguish 1.0 and 0.0 points 
+        if (p->x == 1.0) p->x -= 1e-9; //
+        p->x += x;
+        if (p->x < 0.0) p->x += 1.0;
+        if (p->x > 1.0) p->x -= 1.0;
+    }
+    sortPoints();
+    incrementVersion();
+}
+
 void Pattern::clear()
 {
     std::lock_guard<std::mutex> lock(pointsmtx);
@@ -174,7 +203,7 @@ void Pattern::buildSegments()
         pts.push_back({0, 2.0, 0.5, 0.0, 1});
     }
     else if (pts.size() == 1) {
-        pts.push_back({0, -1.0, pts[0].y, 0.0, 1});
+        pts.insert(pts.begin(), {0, -1.0, pts[0].y, 0.0, 1});
         pts.push_back({0, 2.0, pts[0].y, 0.0, 1});
     }
     else {
@@ -196,29 +225,29 @@ void Pattern::buildSegments()
 void Pattern::loadSine() {
     std::lock_guard<std::mutex> lock(pointsmtx);
     clearUnsafe();
-    insertPoint(0, 1, 0.2, 2);
-    insertPoint(0.5, 0, 0.2, 2);
-    rotate(0.25);
+    insertPointUnsafe(0, 1, 0.2, 2);
+    insertPointUnsafe(0.5, 0, 0.2, 2);
+    rotateUnsafe(0.25);
 }
 
 void Pattern::loadTriangle() {
     std::lock_guard<std::mutex> lock(pointsmtx);
     clearUnsafe();
-    insertPoint(0, 1, 0, 1);
-    insertPoint(0.5, 0, 0, 1);
-    insertPoint(1, 1, 0, 1);
+    insertPointUnsafe(0, 1, 0, 1);
+    insertPointUnsafe(0.5, 0, 0, 1);
+    insertPointUnsafe(1, 1, 0, 1);
 };
 
 void Pattern::loadRandom(int grid) {
     std::lock_guard<std::mutex> lock(pointsmtx);
     clearUnsafe();
     auto y = static_cast<double>(rand())/RAND_MAX;
-    insertPoint(0, y, 0, 1);
-    insertPoint(1, y, 0, 1);
+    insertPointUnsafe(0, y, 0, 1);
+    insertPointUnsafe(1, y, 0, 1);
     for (auto i = 0; i < grid; ++i) {
         auto r1 = static_cast<double>(rand()) / RAND_MAX;
         auto r2 = static_cast<double>(rand()) / RAND_MAX;
-        insertPoint(std::min(0.9999999, std::max(0.000001, r1 / (double)grid + i / (double)grid)), r2, 0, 1);
+        insertPointUnsafe(std::min(0.9999999, std::max(0.000001, r1 / (double)grid + i / (double)grid)), r2, 0, 1);
     }
 };
 
@@ -433,16 +462,28 @@ double Pattern::get_y_smooth_stairs(Segment seg, double x)
 double Pattern::get_y_at(double x)
 {
     std::lock_guard<std::mutex> lock(mtx); // prevents crash while building segments
-    for (auto seg = segments.begin(); seg != segments.end(); ++seg) {
-        if (seg->x1 <= x && seg->x2 >= x) {
-            if (seg->type == PointType::Hold) return seg->y1; // hold
-            if (seg->type == PointType::Curve) return get_y_curve(*seg, x);
-            if (seg->type == PointType::SCurve) return get_y_scurve(*seg, x);
-            if (seg->type == PointType::Pulse) return get_y_pulse(*seg, x);
-            if (seg->type == PointType::Wave) return get_y_wave(*seg, x);
-            if (seg->type == PointType::Triangle) return get_y_triangle(*seg, x);
-            if (seg->type == PointType::Stairs) return get_y_stairs(*seg, x);
-            if (seg->type == PointType::SmoothSt) return get_y_smooth_stairs(*seg, x);
+    int low = 0;
+    int high = static_cast<int>(segments.size()) - 1;
+
+    // binary search the segment containing x
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        const auto& seg = segments[mid];
+
+        if (x < seg.x1) {
+            high = mid - 1;
+        } else if (x > seg.x2) {
+            low = mid + 1;
+        } else {
+            if (seg.type == PointType::Hold) return seg.y1; // hold
+            if (seg.type == PointType::Curve) return get_y_curve(seg, x);
+            if (seg.type == PointType::SCurve) return get_y_scurve(seg, x);
+            if (seg.type == PointType::Pulse) return get_y_pulse(seg, x);
+            if (seg.type == PointType::Wave) return get_y_wave(seg, x);
+            if (seg.type == PointType::Triangle) return get_y_triangle(seg, x);
+            if (seg.type == PointType::Stairs) return get_y_stairs(seg, x);
+            if (seg.type == PointType::SmoothSt) return get_y_smooth_stairs(seg, x);
+            return -1;
         }
     }
 

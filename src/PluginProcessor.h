@@ -179,9 +179,10 @@ public:
     int audioTriggerCountdown = -1; // samples until audio envelope starts
     std::vector<double> latBufferL; // latency buffer left
     std::vector<double> latBufferR; // latency buffer right
-    std::vector<double> latMonitorBufferL; // latency buffer left
-    std::vector<double> latMonitorBufferR; // latency buffer right
+    std::vector<double> monLatBufferL; // latency buffer left
+    std::vector<double> monLatBufferR; // latency buffer right
     int latpos = 0; // latency buffer pos
+    int monlatpos = 0; // monitor latency pos
     RBJ lpFilterL{};
     RBJ lpFilterR{};
     RBJ hpFilterL{};

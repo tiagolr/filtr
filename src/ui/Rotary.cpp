@@ -126,7 +126,6 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
 void Rotary::mouseDown(const juce::MouseEvent& e) 
 {
     if (type != RotaryType::NormalKnob) {
-        lresEditMode = audioProcessor.resonanceEditMode;
         audioProcessor.setResonanceEditMode(type == ResKnob);
     }
     e.source.enableUnboundedMouseMovement(true);
@@ -159,9 +158,6 @@ void Rotary::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWhee
 }
 
 void Rotary::mouseUp(const juce::MouseEvent& e) {
-    if (type != NormalKnob) {
-        audioProcessor.setResonanceEditMode(lresEditMode);
-    }
     mouse_down = false;
     setMouseCursor(MouseCursor::NormalCursor);
     e.source.enableUnboundedMouseMovement(false);

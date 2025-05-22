@@ -143,9 +143,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         btn->onClick = [i, this]() {
             MessageManager::callAsync([i, this] {
                 auto param = audioProcessor.params.getParameter("pattern");
-                param->beginChangeGesture();
                 param->setValueNotifyingHost(param->convertTo0to1((float)(i + 1)));
-                param->endChangeGesture();
             });
         };
         addAndMakeVisible(*btn);
@@ -164,10 +162,11 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         btn->setComponentID(i == 0 ? "leftPattern" : i == 11 ? "rightPattern" : "pattern");
         btn->onClick = [i, this]() {
             MessageManager::callAsync([i, this] {
-                auto param = audioProcessor.params.getParameter("respattern");
-                param->beginChangeGesture();
+                bool linkpats = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load();
+                auto param = linkpats
+                    ? audioProcessor.params.getParameter("pattern")
+                    : audioProcessor.params.getParameter("respattern");
                 param->setValueNotifyingHost(param->convertTo0to1((float)(i + 1)));
-                param->endChangeGesture();
             });
         };
         addAndMakeVisible(*btn);
@@ -354,29 +353,6 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     col = PLUG_PADDING;
     row += 75;
 
-    addAndMakeVisible(cutoffButton);
-    cutoffButton.setButtonText("Cutoff");
-    cutoffButton.setComponentID("button");
-    cutoffButton.setColour(TextButton::buttonColourId, Colours::white);
-    cutoffButton.setColour(TextButton::buttonOnColourId, Colours::white);
-    cutoffButton.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
-    cutoffButton.setColour(TextButton::textColourOffId, Colours::white);
-    cutoffButton.setBounds(col,row,90,25);
-    cutoffButton.onClick = [this]() {
-        audioProcessor.setResonanceEditMode(false);
-    };
-    col += 100;
-
-    addAndMakeVisible(resButton);
-    resButton.setButtonText("Res");
-    resButton.setComponentID("button");
-    resButton.setBounds(col,row,90,25);
-    resButton.onClick = [this]() {
-        audioProcessor.setResonanceEditMode(true);
-    };
-    col += 100;
-    col += 30;
-
     addAndMakeVisible(filterTypeMenu);
     filterTypeMenu.addSectionHeading("Filter Type");
     filterTypeMenu.addItem("Linear 12", 1);
@@ -465,14 +441,14 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     pointMenu.addItem("Triangle", 6);
     pointMenu.addItem("Stairs", 7);
     pointMenu.addItem("Smooth St", 8);
-    pointMenu.setBounds(col, row, 90, 25);
+    pointMenu.setBounds(col, row, 75, 25);
     pointMenu.setSelectedId(audioProcessor.pointMode + 1, dontSendNotification);
     pointMenu.onChange = [this]() {
         MessageManager::callAsync([this]() {
             audioProcessor.pointMode = pointMenu.getSelectedId() - 1;
         });
     };
-    col += 100;
+    col += 85;
 
     addAndMakeVisible(loopButton);
     loopButton.setTooltip("Toggle continuous play");
@@ -648,7 +624,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 {
     patterns[audioProcessor.pattern->index].get()->setToggleState(true, dontSendNotification);
     respatterns[audioProcessor.respattern->index - 12].get()->setToggleState(true, dontSendNotification);
-    bool showResPatterns = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load() == false && audioProcessor.resonanceEditMode;
+    bool showResPatterns = audioProcessor.resonanceEditMode;
     for (int i = 0; i < 12; ++i) {
         patterns[i]->setVisible(!showResPatterns);
         respatterns[i]->setVisible(showResPatterns);
@@ -723,9 +699,6 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
         tensionrel->setTopLeftPosition(col, row);
     }
 
-    cutoffButton.setToggleState(!audioProcessor.resonanceEditMode, dontSendNotification);
-    resButton.setToggleState(audioProcessor.resonanceEditMode, dontSendNotification);
-
     useSidechain.setVisible(showAudioKnobs);
     useMonitor.setVisible(showAudioKnobs);
     useSidechain.setToggleState(audioProcessor.useSidechain, dontSendNotification);
@@ -783,12 +756,17 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     g.fillEllipse(pointLabel.getBounds().expanded(-10,-10).toFloat());
 
     // draw filter icon
-    bounds = Rectangle<int>(resButton.getRight() + 10, resButton.getY(), 20, 25).expanded(0, -7).toFloat();
-    Path fpath;
-    fpath.startNewSubPath(bounds.getX(), bounds.getY());
-    fpath.lineTo(bounds.getX()+6, bounds.getY());
-    fpath.cubicTo((bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(),(bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(), bounds.getRight(), bounds.getBottom());
-    g.strokePath(fpath, PathStrokeType(1.f));
+    //bounds = Rectangle<int>(resButton.getRight() + 10, resButton.getY(), 20, 25).expanded(0, -7).toFloat();
+    //Path fpath;
+    //fpath.startNewSubPath(bounds.getX(), bounds.getY());
+    //fpath.lineTo(bounds.getX()+6, bounds.getY());
+    //fpath.cubicTo((bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(),(bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(), bounds.getRight(), bounds.getBottom());
+    //g.strokePath(fpath, PathStrokeType(1.f));
+
+    bounds = audioProcessor.resonanceEditMode ? res->getBounds().toFloat() : cutoff->getBounds().toFloat();
+    bounds.removeFromTop(50.f);
+    g.setColour((audioProcessor.resonanceEditMode ? Colour(COLOR_ACTIVE) : Colours::white).withAlpha(0.3f));
+    g.fillRoundedRectangle(bounds.toFloat().expanded(-4.f, 2.f).translated(0.5f, 0.5f), 3.f);
 
     // draw loop play button
     auto trigger = (int)audioProcessor.params.getRawParameterValue("trigger")->load();
@@ -967,6 +945,8 @@ void FILTRAudioProcessorEditor::resized()
     useMonitor.setBounds(bounds.withX(col - bounds.getWidth()));
 
     // 3rd row
+    //filterTypeMenu.setBounds(filterTypeMenu.getBounds().withX(getWidth() / 2 - (90 * 2 + 10) / 2));
+    //filterModeMenu.setBounds(filterModeMenu.getBounds().withX(filterTypeMenu.getBounds().getRight() + 10));
     pasteButton.setBounds(pasteButton.getBounds().withRightX(col));
     copyButton.setBounds(copyButton.getBounds().withRightX(pasteButton.getX() - 10));
 

@@ -448,8 +448,8 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     int trigger = (int)params.getRawParameterValue("trigger")->load();
     setLatencySamples(trigger == Trigger::Audio
-        ? static_cast<int>(sampleRate * LATENCY_MILLIS / 1000.0)
-        : 0
+        ? (int)std::ceil(oversampler.getLatencyInSamples() + sampleRate * LATENCY_MILLIS / 1000.0)
+        : (int)std::ceil(oversampler.getLatencyInSamples())
     );
     lpFilterL.clear(0.0);
     lpFilterR.clear(0.0);
@@ -459,6 +459,7 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     transDetectorR.clear(sampleRate);
     std::fill(monSamples.begin(), monSamples.end(), 0.0);
     resetFilters(sampleRate);
+    clearLatencyBuffers();
     onSlider();
 }
 
@@ -572,8 +573,8 @@ void FILTRAudioProcessor::onSlider()
     if (trigger != ltrigger) {
         auto latency = getLatencySamples();
         setLatencySamples(trigger == Trigger::Audio
-            ? static_cast<int>(getSampleRate() * LATENCY_MILLIS / 1000.0)
-            : 0
+            ? (int)std::ceil(oversampler.getLatencyInSamples() + getSampleRate() * LATENCY_MILLIS / 1000.0)
+            : (int)std::ceil(oversampler.getLatencyInSamples())
         );
         if (getLatencySamples() != latency && playing) {
             showLatencyWarning = true;
@@ -808,12 +809,17 @@ void FILTRAudioProcessor::clearDrawBuffers()
 
 void FILTRAudioProcessor::clearLatencyBuffers()
 {
-    auto latency = getLatencySamples();
+    int trigger = (int)params.getRawParameterValue("trigger")->load();
+    auto latency = trigger == Trigger::Audio 
+        ? (int)std::ceil(getSampleRate() * LATENCY_MILLIS / 1000.0)
+        : 0;
+    latency *= (int)oversampler.getOversamplingFactor();
     latBufferL.resize(latency, 0.0);
     latBufferR.resize(latency, 0.0);
-    latMonitorBufferL.resize(latency, 0.0);
-    latMonitorBufferR.resize(latency, 0.0);
+    monLatBufferL.resize(getLatencySamples());
+    monLatBufferR.resize(getLatencySamples());
     latpos = 0;
+    monlatpos = 0;
 }
 
 void FILTRAudioProcessor::toggleUseSidechain()
@@ -883,12 +889,8 @@ void FILTRAudioProcessor::queuePattern(int patidx)
         queuedPatternCountdown = (interval - timeInSamples % interval) % interval;
     }
 
-    MessageManager::callAsync([this, patidx] {
-        auto param = params.getParameter("pattern");
-        param->beginChangeGesture();
-        param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
-        param->endChangeGesture();
-    });
+    auto param = params.getParameter("pattern");
+    param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
 }
 
 void FILTRAudioProcessor::queueResPattern(int patidx)
@@ -910,12 +912,8 @@ void FILTRAudioProcessor::queueResPattern(int patidx)
         queuedResPatternCountdown = (interval - timeInSamples % interval) % interval;
     }
 
-    MessageManager::callAsync([this, patidx] {
-        auto param = params.getParameter("respattern");
-        param->beginChangeGesture();
-        param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
-        param->endChangeGesture();
-    });
+    auto param = params.getParameter("respattern");
+    param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
 }
 
 bool FILTRAudioProcessor::supportsDoublePrecisionProcessing() const
@@ -937,7 +935,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
 {
     juce::ScopedNoDenormals disableDenormals;
     double srate = getSampleRate();
-    int sblock = getBlockSize();
+    int samplesPerBlock = getBlockSize();
     int samplingFactor = (int)oversampler.getOversamplingFactor();
     bool looping = false;
     double loopStart = 0.0;
@@ -1097,12 +1095,12 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     for (auto it = midiOut.begin(); it != midiOut.end();) {
         auto& [msg, offset] = *it;
 
-        if (offset < sblock) {
+        if (offset < samplesPerBlock) {
             midiMessages.addEvent(msg, offset);
             it = midiOut.erase(it);
         }
         else {
-            offset -= sblock;
+            offset -= samplesPerBlock;
             ++it;
         }
     }
@@ -1124,6 +1122,64 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     if (playing) {
         beatPos = ppqPosition;
         ratePos = beatPos * secondsPerBeat * ratehz;
+    }
+
+    // audio trigger transient detection and monitoring 
+    // direct audio buffer processing, not oversampled
+    if (trigger == Audio) {
+        for (int sample = 0; sample < numSamples; ++sample) {
+            // read audio samples
+            double lsample = (double)buffer.getSample(0, sample);
+            double rsample = (double)buffer.getSample(audioInputs > 1 ? 1 : 0, sample);
+
+            // read sidechain samples
+            double lsidesample = 0.0;
+            double rsidesample = 0.0;
+            if (useSidechain && sideInputs) {
+                lsidesample = (double)buffer.getSample(audioInputs, sample);
+                rsidesample = (double)buffer.getSample(sideInputs > 1 ? audioInputs + 1 : audioInputs, sample);
+            }
+
+            // Detect audio transients
+            auto monSampleL = useSidechain ? lsidesample : lsample;
+            auto monSampleR = useSidechain ? rsidesample : rsample;
+            if (lowcut > 20.0) {
+                monSampleL = hpFilterL.df1(monSampleL);
+                monSampleR = hpFilterR.df1(monSampleR);
+            }
+            if (highcut < 20000.0) {
+                monSampleL = lpFilterL.df1(monSampleL);
+                monSampleR = lpFilterR.df1(monSampleR);
+            }
+
+            bool hit = false;
+            if (transDetectorL.detect(algo, monSampleL, threshold, sense) ||
+                transDetectorR.detect(algo, monSampleR, threshold, sense))
+            {
+                transDetectorL.startCooldown();
+                transDetectorR.startCooldown();
+                int offset = (int)(params.getRawParameterValue("offset")->load() * LATENCY_MILLIS / 1000.f * srate);
+                audioTriggerCountdown = (sample + std::max(0, getLatencySamples() + offset)) * samplingFactor;
+                hitamp = transDetectorL.hit ? std::fabs(monSampleL) : std::fabs(monSampleR);
+                hit = true;
+            }
+
+            processMonitorSample(monSampleL, monSampleR, hit);
+            monLatBufferL[monlatpos] = monSampleL;
+            monLatBufferR[monlatpos] = monSampleR;
+
+            int latency = (int)monLatBufferL.size();
+            auto readpos = (monlatpos + latency - 1) % latency;
+            if (useMonitor) {
+                monSampleL = monLatBufferL[readpos];
+                monSampleR = monLatBufferR[readpos];
+                for (int channel = 0; channel < audioOutputs; ++channel) {
+                    buffer.setSample(channel, sample, static_cast<FloatType>(channel == 0 ? monSampleL : monSampleR));
+                }
+            }
+
+            monlatpos = (monlatpos + 1) % latency;
+        }
     }
 
     for (int sample = 0; sample < numUpSamples; ++sample) {
@@ -1168,9 +1224,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 pattern->setTension(tension, tensionatk, tensionrel, dualTension);
                 pattern->buildSegments();
                 updateCutoffFromPattern();
-                MessageManager::callAsync([this]() {
-                    sendChangeMessage();
-                });
+                MessageManager::callAsync([this]() { sendChangeMessage();});
                 queuedPattern = 0;
             }
             if (queuedPatternCountdown > 0) {
@@ -1194,9 +1248,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 respattern->setTension(tension, tensionatk, tensionrel, dualTension);
                 respattern->buildSegments();
                 updateResFromPattern();
-                MessageManager::callAsync([this]() {
-                    sendChangeMessage();
-                });
+                MessageManager::callAsync([this]() {sendChangeMessage();});
                 queuedResPattern = 0;
             }
             if (queuedResPatternCountdown > 0) {
@@ -1226,7 +1278,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         else if (trigger == Trigger::MIDI) {
             auto inc = sync > 0
                 ? beatsPerSample / syncQN
-                : 1 / srate * ratehz;
+                : 1 / (srate * samplingFactor) * ratehz;
             xpos += inc;
             trigpos += inc;
             xpos -= std::floor(xpos);
@@ -1257,52 +1309,13 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
 
         // Audio mode
         else if (trigger == Trigger::Audio) {
-            int latency = (int)latBufferL.size();
-
-            // read audio samples
-            double lsample = (double)upsampledBlock.getSample(0, sample);
-            double rsample = (double)upsampledBlock.getSample(audioInputs > 1 ? 1 : 0, sample);
-            latBufferL[latpos] = lsample;
-            latBufferR[latpos] = rsample;
-
-            // read sidechain samples
-            double lsidesample = 0.0;
-            double rsidesample = 0.0;
-            if (useSidechain && sideInputs) {
-                lsidesample = (double)buffer.getSample(audioInputs, sample / 2);
-                rsidesample = (double)buffer.getSample(sideInputs > 1 ? audioInputs + 1 : audioInputs, sample / 2);
-            }
-
-            // Detect audio transients
-            auto monSampleL = useSidechain ? lsidesample : lsample;
-            auto monSampleR = useSidechain ? rsidesample : rsample;
-            if (lowcut > 20.0) {
-                monSampleL = hpFilterL.df1(monSampleL);
-                monSampleR = hpFilterR.df1(monSampleR);
-            }
-            if (highcut < 20000.0) {
-                monSampleL = lpFilterL.df1(monSampleL);
-                monSampleR = lpFilterR.df1(monSampleR);
-            }
-            latMonitorBufferL[latpos] = monSampleL;
-            latMonitorBufferR[latpos] = monSampleR;
-
-            if (transDetectorL.detect(algo, monSampleL, threshold, sense) ||
-                transDetectorR.detect(algo, monSampleR, threshold, sense))
-            {
-                transDetectorL.startCooldown();
-                transDetectorR.startCooldown();
-                int offset = (int)(params.getRawParameterValue("offset")->load() * LATENCY_MILLIS / 1000.f * srate);
-                audioTriggerCountdown = std::max(0, getLatencySamples() + offset);
-                hitamp = transDetectorL.hit ? std::fabs(monSampleL) : std::fabs(monSampleR);
-            }
-
             // read the sample 'latency' samples ago
+            int latency = (int)latBufferL.size();
             int readPos = (latpos + latency - 1) % latency;
-            lsample = latBufferL[readPos];
-            rsample = latBufferR[readPos];
-            monSampleL = latMonitorBufferL[readPos];
-            monSampleR = latMonitorBufferR[readPos];
+            latBufferL[latpos] = upsampledBlock.getSample(0, sample);
+            latBufferR[latpos] = upsampledBlock.getSample(1, sample);
+            auto lsample = latBufferL[readPos];
+            auto rsample = latBufferR[readPos];
 
             // write delayed samples to buffer to later apply dry/wet mix
             for (int channel = 0; channel < 2; ++channel) {
@@ -1310,12 +1323,11 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             }
 
             auto hit = audioTriggerCountdown == 0; // there was an audio transient trigger in this sample
-            processMonitorSample(monSampleL, monSampleR, hit);
 
             // envelope processing
             auto inc = sync > 0
                 ? beatsPerSample / syncQN
-                : 1 / srate * ratehz;
+                : 1 / (srate * samplingFactor) * ratehz;
             xpos += inc;
             trigpos += inc;
             trigposSinceHit += inc;
@@ -1327,14 +1339,14 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 midiMessages.addEvent(noteOn, sample);
 
                 auto offnoteDelay = static_cast<int>(srate * AUDIO_NOTE_LENGTH_MILLIS / 1000.0);
-                int noteOffSample = sample + offnoteDelay;
+                int noteOffSample = sample / samplingFactor + offnoteDelay;
                 auto noteOff = MidiMessage::noteOff(1, outputATMIDI - 1);
 
-                if (noteOffSample < sblock) {
+                if (noteOffSample < samplesPerBlock) {
                     midiMessages.addEvent(noteOff, noteOffSample);
                 }
                 else {
-                    int offset = noteOffSample - sblock;
+                    int offset = noteOffSample - samplesPerBlock;
                     midiOut.push_back({ noteOff, offset });
                 }
             }
@@ -1365,14 +1377,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             double newyres = getYres(xpos, min, max);
             yres = resvalue->process(newyres, newyres > yres);
 
-            if (useMonitor) {
-                for (int channel = 0; channel < audioOutputs; ++channel) {
-                    buffer.setSample(channel, sample, static_cast<FloatType>(channel == 0 ? monSampleL : monSampleR));
-                }
-            }
-            else {
-                applyFilter(sample, ypos, yres, lsample, rsample);
-            }
+            applyFilter(sample, ypos, yres, lsample, rsample);
 
             double viewx = (alwaysPlaying || audioTrigger) ? xpos : (trigpos + trigphase) - std::floor(trigpos + trigphase);
             processDisplaySample(sample, viewx, lsample, rsample);
@@ -1385,20 +1390,22 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         xenv.store(xpos);
         yenv.store(resonanceEditMode ? yres : ypos);
         beatPos += beatsPerSample;
-        ratePos += 1 / srate * ratehz;
+        ratePos += 1 / (srate * samplingFactor) * ratehz;
         if (playing)
             timeInSamples += 1;
     }
 
     drawSeek.store(playing && (trigger == Trigger::Sync || midiTrigger || audioTrigger));
-
     oversampler.processSamplesDown(block);
+
     // Convert back to the original buffer type
-    for (int channel = 0; channel < audioOutputs; ++channel) {
-        auto* src = doubleBuffer.getReadPointer(channel);
-        auto* dst = buffer.getWritePointer(channel);
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-            dst[sample] = static_cast<FloatType>(src[sample]);
+    if (trigger != Trigger::Audio || !useMonitor) {
+        for (int channel = 0; channel < audioOutputs; ++channel) {
+            auto* src = doubleBuffer.getReadPointer(channel);
+            auto* dst = buffer.getWritePointer(channel);
+            for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+                dst[sample] = static_cast<FloatType>(src[sample]);
+        }
     }
 
     lastOutL = buffer.getSample(0, numSamples - 1);

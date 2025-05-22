@@ -16,7 +16,7 @@ namespace globals {
 	inline unsigned int COLOR_SEEK = 0xff80ffff;
 	inline unsigned int COLOR_KNOB = 0xff272727;
 	inline unsigned int COLOR_AUDIO = 0xffffd42a;
-	inline unsigned int COLOR_MIDI = 0xff50a9ff;
+	inline unsigned int COLOR_MIDI = 0xff00e672;
 	inline unsigned int COLOR_SELECTION = 0xff50a9ff;
 	inline unsigned int COLOR_SEQ_MAX = 0xffffffff;
 	inline unsigned int COLOR_SEQ_MIN = 0xffffffff;
@@ -25,7 +25,7 @@ namespace globals {
 	inline unsigned int COLOR_SEQ_TENA = 0xffffee50;
 	inline unsigned int COLOR_SEQ_TENR = 0xffffB950;
 
-	inline const int LATENCY_MILLIS = 5;
+	inline const int LATENCY_MILLIS = 4;
 	inline const int AUDIO_COOLDOWN_MILLIS = 50;
 	inline const int AUDIO_DRUMSBUF_MILLIS = 20;
 	inline const int AUDIO_NOTE_LENGTH_MILLIS = 100;
