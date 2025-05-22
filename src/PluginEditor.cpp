@@ -246,7 +246,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     morph->setBounds(col,row,80,65);
     col += 75;
 
-    gain = std::make_unique<Rotary>(p, "gain", "Gain", RotaryLabel::gainTodB1f, true);
+    gain = std::make_unique<Rotary>(p, "gain", "Gain", RotaryLabel::dBfloat1, true);
     addAndMakeVisible(*gain);
     gain->setBounds(col,row,80,65);
     col += 75;

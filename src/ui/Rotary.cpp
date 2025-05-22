@@ -46,11 +46,44 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
     if (mouse_down) {
         if (format == RotaryLabel::percx100) text = std::to_string((int)std::round((slider_val * 100))) + " %";
         if (format == RotaryLabel::intx100) text = std::to_string((int)std::round((slider_val * 100)));
-        else if (format == RotaryLabel::hz) text = std::to_string((int)slider_val) + " Hz";
-        else if (format == RotaryLabel::hzLp) text = slider_val >= 20000 ? "Off" : std::to_string((int)slider_val) + " Hz";
-        else if (format == RotaryLabel::hzHp) text = slider_val <= 20 ? "Off" : std::to_string((int)slider_val) + " Hz";
+        else if (format == RotaryLabel::hz) {
+            if (slider_val < 1000) {
+                ss << std::fixed << std::setprecision(0) << slider_val << " Hz";
+            } else {
+                ss << std::fixed << std::setprecision(1) << slider_val / 1000.0 << " kHz";
+            }
+            text = ss.str();
+        }
+        else if (format == RotaryLabel::hzLp) {
+            if (slider_val >= 20000) {
+                ss << "Off";
+            }
+            else if (slider_val < 1000) {
+                ss << std::fixed << std::setprecision(0) << (int)slider_val << " Hz";
+            }
+            else {
+                ss << std::fixed << std::setprecision(1) << slider_val / 1000.0 << " kHz";
+            }
+            text = ss.str();
+        }
+        else if (format == RotaryLabel::hzHp) {
+            if (slider_val <= 20) {
+                ss << "Off";
+            }
+            else if (slider_val < 1000) {
+                ss << std::fixed << std::setprecision(0) << (int)slider_val << " Hz";
+            }
+            else {
+                ss << std::fixed << std::setprecision(1) << slider_val / 1000.0 << " kHz";
+            }
+            text = ss.str();
+        }
         else if (format == RotaryLabel::hz1f) {
-            ss << std::fixed << std::setprecision(1) << slider_val << " Hz";
+            if (slider_val < 1000) {
+                ss << std::fixed << std::setprecision(1) << slider_val << " Hz";
+            } else {
+                ss << std::fixed << std::setprecision(1) << slider_val / 1000.0 << " kHz";
+            }
             text = ss.str();
         }
         else if (format == RotaryLabel::float1) {
@@ -73,6 +106,10 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
             else {
                 text = "-Inf";
             }
+        }
+        else if (format == RotaryLabel::dBfloat1) {
+            ss << std::fixed << std::setprecision(1) << slider_val << " dB";
+            text = ss.str();
         }
         else if (format == RotaryLabel::audioOffset) {
             ss << std::fixed << std::setprecision(1) << slider_val * LATENCY_MILLIS << " ms";

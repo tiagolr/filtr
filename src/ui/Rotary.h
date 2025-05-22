@@ -12,6 +12,7 @@ enum RotaryLabel {
     hzLp,
     hzHp,
     gainTodB1f,
+    dBfloat1,
     hz1f,
     percx100,
     intx100,

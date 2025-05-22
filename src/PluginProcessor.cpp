@@ -39,7 +39,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("tensionrel", "Release Tension", -1.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterBool>("snap", "Snap", false),
         std::make_unique<juce::AudioParameterInt>("grid", "Grid", 0, (int)std::size(GRID_SIZES)-1, 2),
-        std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", -1.0f, 1.0f, 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", juce::NormalisableRange<float> (-24.f,24.f,0.1f,0.5f, true), 0.0f),
         // filter params
         std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-" }, 0),
         std::make_unique<juce::AudioParameterChoice>("fmode", "Filter Mode", StringArray { "Low Pass", "Band Pass", "High Pass", "Band Stop", "Peak" }, 0),
@@ -957,13 +957,14 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     int algo = (int)params.getRawParameterValue("algo")->load();
     double threshold = (double)params.getRawParameterValue("threshold")->load();
     double sense = 1.0 - (double)params.getRawParameterValue("sense")->load();
+    double gain = std::pow(10.0, params.getRawParameterValue("gain")->load() / 20.0) ;
     sense = std::pow(sense, 2); // make sensitivity more responsive
 
     // processes draw wave samples
     auto processDisplaySample = [&](int sampidx, double xpos, double prelsamp, double prersamp) {
         auto preamp = std::max(std::fabs(prelsamp), std::fabs(prersamp));
         auto postlsamp = (double)upsampledBlock.getSample(0, sampidx);
-        auto postrsamp = audioOutputs > 1 ? (double)upsampledBlock.getSample(0, sampidx) : postlsamp;
+        auto postrsamp = audioInputs > 1 ? (double)upsampledBlock.getSample(1, sampidx) : postlsamp;
         auto postamp = std::max(std::fabs(postlsamp), std::fabs(postrsamp));
         winpos = (int)std::floor(xpos * viewW);
         if (lwinpos != winpos) {
@@ -1003,8 +1004,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         double cutoff = Utils::normalToFreq(env);
         lFilter->init(srate * samplingFactor, cutoff, resenv);
         rFilter->init(srate * samplingFactor, cutoff, resenv);
-        double outl = lFilter->eval(lsample);
-        double outr = rFilter->eval(rsample);
+        double outl = lFilter->eval(lsample) * gain;
+        double outr = rFilter->eval(rsample) * gain;
         lFilter->tick();
         rFilter->tick();
 
