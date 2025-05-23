@@ -699,7 +699,6 @@ void FILTRAudioProcessor::onSlider()
     // DAW param updates are not reliable, on standalone works fine
     if (cutoffDirtyCooldown > 0) {
         lcutoff = cutoff;
-        cutoffDirtyCooldown--;
     }
     else if (cutoff != lcutoff) {
         updatePatternFromCutoff();
@@ -708,7 +707,6 @@ void FILTRAudioProcessor::onSlider()
 
     if (resDirtyCooldown > 0) {
         lres = res;
-        resDirtyCooldown--;
     } 
     else if (res != lres) {
         updateResPatternFromRes();
@@ -1087,6 +1085,10 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         onSlider();
         paramChanged = false;
     }
+    if (cutoffDirtyCooldown > 0)
+        cutoffDirtyCooldown--;
+    if (resDirtyCooldown > 0)
+        resDirtyCooldown--;
 
     // Process new MIDI messages
     for (const auto metadata : midiMessages) {
