@@ -280,7 +280,7 @@ std::vector<double> View::getMidpointXY(Segment seg)
 
 void View::drawMidPoints(Graphics& g)
 {
-    auto segs = audioProcessor.viewPattern->segments;
+    auto segs = audioProcessor.viewPattern->getSegments();
 
     // draw midpoints
     g.setColour(Colour(COLOR_ACTIVE));
@@ -322,11 +322,29 @@ void View::drawSeek(Graphics& g)
     auto xpos = audioProcessor.xenv.load();
     auto ypos = audioProcessor.yenv.load();
     bool drawSeek = audioProcessor.drawSeek.load();
+    bool isResPattern = audioProcessor.viewPattern->index >= 12 && audioProcessor.viewPattern->index <= 24;
+    
+    seekTrail.push_back(Point<double>(xpos * winw + winx, (1.0 - ypos) * winh + winy));
+    if (seekTrail.size() > 30) 
+        seekTrail.pop_front();
 
     if (drawSeek) {
         g.setColour(Colour(COLOR_SEEK).withAlpha(0.5f));
         g.drawLine((float)(xpos * winw + winx), (float)winy, (float)(xpos * winw + winx), (float)(winy + winh));
     }
+    
+    // draw seek trail
+    auto color = isResPattern ? Colour(COLOR_ACTIVE) : Colours::white;
+    for (int i = 1; i < seekTrail.size(); ++i) {
+        const auto& prev = seekTrail[i - 1];
+        const auto& curr = seekTrail[i];
+        if (prev.x > curr.x) 
+            continue; // ignore lines back
+        double alpha = i / 30.0 * 0.75;
+        g.setColour(color.withAlpha((float)alpha));
+        g.drawLine((float)prev.x, (float)prev.y, (float)curr.x, (float)curr.y, 1.0f);
+    }
+
     g.setColour(Colour(COLOR_SEEK));
     g.drawEllipse((float)(xpos * winw + winx - 5.f), (float)((1 - ypos) * winh + winy - 5.f), 10.0f, 10.0f, 1.0f);
 }
@@ -346,7 +364,7 @@ int View::getHoveredPoint(int x, int y)
 
 int View::getHoveredMidpoint(int x, int y)
 {
-    auto segs = audioProcessor.viewPattern->segments;
+    auto segs = audioProcessor.viewPattern->getSegments();
     for (auto i = 0; i < segs.size(); ++i) {
         auto& seg = segs[i];
         auto xy = getMidpointXY(seg);
@@ -466,8 +484,8 @@ void View::mouseUp(const juce::MouseEvent& e)
             // ----
         }
         else if (selectedMidpoint > -1) { // finished dragging midpoint, place cursor at midpoint
-            auto& mpoint = getPointFromMidpoint(selectedMidpoint);
-            auto& next = getPointFromMidpoint(selectedMidpoint + 1);
+            auto mpoint = getPointFromMidpoint(selectedMidpoint);
+            auto next = getPointFromMidpoint(selectedMidpoint + 1);
             double midx = (mpoint.x + next.x) / 2.;
             int x = (int)(midx * winw + winx) + getScreenPosition().x;
             int y = (int)(audioProcessor.viewPattern->get_y_at(midx) * winh + winy) + getScreenPosition().y;

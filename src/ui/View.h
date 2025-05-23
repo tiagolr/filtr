@@ -10,10 +10,11 @@
 #pragma once
 #include <JuceHeader.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <deque>
+#include "../Globals.h"
 #include "../dsp/Pattern.h"
 #include "Multiselect.h"
 #include "PaintTool.h"
-#include "../Globals.h"
 
 class FILTRAudioProcessor;
 using namespace globals;
@@ -83,4 +84,7 @@ private:
 
     // PaintTool
     PaintTool paintTool;
+
+    // Draw seek trail
+    std::deque<Point<double>> seekTrail;
 };

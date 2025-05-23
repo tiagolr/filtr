@@ -83,6 +83,7 @@ public:
     void transform(double midy_);
     void clearTransform();
     double getavgY();
+    std::vector<Segment> getSegments();
 
     int getWaveCount(Segment seg);
     double get_y_curve(Segment seg, double x);

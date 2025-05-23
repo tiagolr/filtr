@@ -222,6 +222,13 @@ void Pattern::buildSegments()
     }
 }
 
+// Thread safely returns a copy of segments
+std::vector<Segment> Pattern::getSegments()
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    return segments;
+}
+
 void Pattern::loadSine() {
     std::lock_guard<std::mutex> lock(pointsmtx);
     clearUnsafe();

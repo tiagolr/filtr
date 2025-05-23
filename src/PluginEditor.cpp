@@ -124,6 +124,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     settingsButton->toggleAbout = [this]() { about.get()->setVisible(true); };
     settingsButton->setBounds(col-20,row,25,25);
 
+    mixDial = std::make_unique<TextDial>(p, "mix", "Mix ", "", TextDialLabel::tdPercx100, 16.f, COLOR_NEUTRAL_LIGHT);
+    addAndMakeVisible(*mixDial);
+    mixDial->setBounds(col - 20 - 10 - 65, row, 65, 25);
+
     // SECOND ROW
 
     row += 35;
@@ -215,12 +219,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     patSyncMenu.addItem("4 Beats", 6);
     patSyncMenu.setBounds(col, row, 75, 25);
     patSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "patsync", patSyncMenu);
-
-    // 2ND ROW RIGHT
-    col = getWidth() - PLUG_PADDING;
-    mixDial = std::make_unique<TextDial>(p, "mix", "Mix ", "", TextDialLabel::tdPercx100, 16.f, COLOR_NEUTRAL_LIGHT);
-    addAndMakeVisible(*mixDial);
-    mixDial->setBounds(col - 65, row, 65, 25);
+    
 
     // KNOBS ROW
     row += 35;
@@ -934,7 +933,7 @@ void FILTRAudioProcessorEditor::resized()
     auto col = getWidth() - PLUG_PADDING;
     auto bounds = settingsButton->getBounds();
     settingsButton->setBounds(bounds.withX(col - bounds.getWidth()));
-    mixDial->setBounds(mixDial->getBounds().withRightX(col));
+    mixDial->setBounds(mixDial->getBounds().withRightX(settingsButton->getBounds().getX() - 10));
 
     // knobs row
     bounds = audioDisplay->getBounds();
