@@ -678,17 +678,20 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
         audioProcessor.showAudioKnobs = false;
     }
 
+
     loopButton.setVisible(trigger > 0);
 
     int sync = (int)audioProcessor.params.getRawParameterValue("sync")->load();
     bool showAudioKnobs = audioProcessor.showAudioKnobs;
-    bool showMorph = ftype == kPhaserPos || ftype == kPhaserNeg;
+    bool isPhaser = ftype == kPhaserPos || ftype == kPhaserNeg;
+
+    filterModeMenu.setEnabled(!isPhaser);
 
     // layout knobs
     cutoff->setVisible(!showAudioKnobs);
     res->setVisible(!showAudioKnobs);
-    drive->setVisible(!showAudioKnobs && !showMorph);
-    morph->setVisible(!showAudioKnobs && showMorph);
+    drive->setVisible(!showAudioKnobs && !isPhaser);
+    morph->setVisible(!showAudioKnobs && isPhaser);
     rate->setVisible(!showAudioKnobs);
     smooth->setVisible(!showAudioKnobs);
     attack->setVisible(!showAudioKnobs);
