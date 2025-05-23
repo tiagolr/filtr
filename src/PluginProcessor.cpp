@@ -681,6 +681,7 @@ void FILTRAudioProcessor::onSlider()
         params.getParameter("cutoff")->setValueNotifyingHost(avg);
         lcutoff = (double)params.getRawParameterValue("cutoff")->load();
         cutoffDirty = false;
+        cutoffDirtyCooldown = 5; // ignore cutoff updates for 5 blocks
     }
 
     if (resDirty) {
@@ -688,17 +689,28 @@ void FILTRAudioProcessor::onSlider()
         params.getParameter("res")->setValueNotifyingHost(avg);
         lres = (double)params.getRawParameterValue("res")->load();
         resDirty = false;
+        resDirtyCooldown = 5;
     }
 
     double cutoff = (double)params.getRawParameterValue("cutoff")->load();
     double res = (double)params.getRawParameterValue("res")->load();
     
-    if (cutoff != lcutoff) {
+    // Ignores DAW updates for cutoff which was changed internally
+    // DAW param updates are not reliable, on standalone works fine
+    if (cutoffDirtyCooldown > 0) {
+        lcutoff = cutoff;
+        cutoffDirtyCooldown--;
+    }
+    else if (cutoff != lcutoff) {
         updatePatternFromCutoff();
         lcutoff = cutoff;
     }
 
-    if (res != lres) {
+    if (resDirtyCooldown > 0) {
+        lres = res;
+        resDirtyCooldown--;
+    } 
+    else if (res != lres) {
         updateResPatternFromRes();
         lres = res;
     }

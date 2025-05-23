@@ -172,7 +172,9 @@ public:
     double lastOutL = 0.0; // used for smoothly transition filter types
     double lastOutR = 0.0;
     bool cutoffDirty = false;
+    int cutoffDirtyCooldown = 0; // DAW param updates are not reliable, when the cutoff is changed internally ignore DAW param updates for a short time
     bool resDirty = false;
+    int resDirtyCooldown = 0;
 
     // Audio mode state
     bool audioTrigger = false; // flag audio has triggered envelope

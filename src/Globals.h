@@ -9,8 +9,6 @@ namespace globals {
 
 	inline unsigned int COLOR_BG = 0xff181818;
 	inline unsigned int COLOR_ACTIVE = 0xff00bbff;
-	inline unsigned int COLOR_ACTIVE_LIGHT = 0xff33b0eb;
-	inline unsigned int COLOR_ACTIVE_DARK = 0xff0089cf;
 	inline unsigned int COLOR_NEUTRAL = 0xff666666;
 	inline unsigned int COLOR_NEUTRAL_LIGHT = 0x99999999;
 	inline unsigned int COLOR_SEEK = 0xff80ffff;
