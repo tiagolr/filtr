@@ -219,6 +219,7 @@ public:
     bool showPaintWidget = false;
     bool showSequencer = false;
     bool resonanceEditMode = false;
+    bool showEnvelopeKnobs = false;
     std::atomic<double> rmsLeft = 0.0;
     std::atomic<double> rmsRight = 0.0;
 

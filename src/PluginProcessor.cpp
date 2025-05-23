@@ -57,6 +57,9 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("lowcut", "Audio LowCut", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f) , 20.f),
         std::make_unique<juce::AudioParameterFloat>("highcut", "Audio HighCut", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f) , 20000.f),
         std::make_unique<juce::AudioParameterFloat>("offset", "Audio Offset", -1.0f, 1.0f, 0.0f),
+        // envelope follower params
+        std::make_unique<juce::AudioParameterBool>("cutenvon", "Cut Envelope ON", false),
+        std::make_unique<juce::AudioParameterBool>("resenvon", "Res Envelope ON", false),
     })
 #endif
 {

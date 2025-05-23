@@ -40,6 +40,7 @@ public:
     void drawGear(Graphics&g, Rectangle<int> bounds, float radius, int segs, Colour color, Colour bg);
     void drawChain(Graphics&g, Rectangle<int> boudns, Colour color, Colour bg);
     void drawUndoButton(Graphics& g, juce::Rectangle<float> area, bool invertx, Colour color);
+    void drawPowerButton(Graphics& g, Rectangle<float> area, Colour color);
 
 private:
     bool init = false;
@@ -92,8 +93,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterTypeAttachment;
     ComboBox filterModeMenu;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterModeAttachment;
-    TextButton copyButton;
-    TextButton pasteButton;
+    TextButton resEnvButton;
+    TextButton resEnvOnButton;
+    TextButton cutEnvButton;
+    TextButton cutEnvOnButton;
     TextButton useSidechain;
     TextButton useMonitor;
     TextButton nudgeRightButton;

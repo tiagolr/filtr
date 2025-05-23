@@ -19,6 +19,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     audioProcessor.params.addParameterListener("grid", this);
     audioProcessor.params.addParameterListener("trigger", this);
     audioProcessor.params.addParameterListener("pattern", this);
+    audioProcessor.params.addParameterListener("cutenvon", this);
+    audioProcessor.params.addParameterListener("resenvon", this);
 
     auto col = PLUG_PADDING;
     auto row = PLUG_PADDING;
@@ -109,6 +111,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     audioSettingsButton.setBounds(col, row, 25, 25);
     audioSettingsButton.onClick = [this]() {
         audioProcessor.showAudioKnobs = !audioProcessor.showAudioKnobs;
+        if (audioProcessor.showAudioKnobs) {
+            audioProcessor.showEnvelopeKnobs = false;
+        }
         toggleUIComponents();
     };
     audioSettingsButton.setAlpha(0.0f);
@@ -381,7 +386,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     col += 25;
     addAndMakeVisible(cutoffset);
     cutoffset.setComponentID("symmetric");
-    cutoffset.setTooltip("Env. Offset - Automate this instead of cutoff so the envelope remains editable.");
+    cutoffset.setTooltip("Offset - Automate this param instead of cutoff so the envelope remains editable.");
     cutoffset.setSliderStyle(Slider::LinearHorizontal);
     cutoffset.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
     cutoffset.setBounds(col-5, row, 130, 25);
@@ -398,7 +403,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
 
     addAndMakeVisible(resoffset);
     resoffset.setComponentID("symmetric");
-    resoffset.setTooltip("Env. Offset - Automate this instead of resonance so the envelope remains editable.");
+    resoffset.setTooltip("Offset - Automate this param instead of resonance so the envelope remains editable.");
     resoffset.setSliderStyle(Slider::LinearHorizontal);
     resoffset.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
     resoffset.setBounds(col-5, row, 130, 25);
@@ -415,17 +420,50 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
 
     // 3rd ROW RIGHT
     col = getWidth() - PLUG_PADDING;
-    addAndMakeVisible(pasteButton);
-    pasteButton.setButtonText("Paste");
-    pasteButton.setComponentID("button");
-    pasteButton.setBounds(col-60, row, 60, 25);
-    col -= 70;
+    addAndMakeVisible(cutEnvButton);
+    cutEnvButton.setButtonText("Envelope");
+    cutEnvButton.setComponentID("button");
+    cutEnvButton.setColour(TextButton::buttonColourId, Colours::white);
+    cutEnvButton.setColour(TextButton::buttonOnColourId, Colours::white);
+    cutEnvButton.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
+    cutEnvButton.setColour(TextButton::textColourOffId, Colours::white);
+    cutEnvButton.setBounds(col-90, row, 90, 25);
+    cutEnvButton.onClick = [this]() {
+        audioProcessor.showEnvelopeKnobs = !audioProcessor.showEnvelopeKnobs;
+        toggleUIComponents();
+    };
 
-    addAndMakeVisible(copyButton);
-    copyButton.setButtonText("Copy");
-    copyButton.setComponentID("button");
-    copyButton.setBounds(col-60, row, 60, 25);
-    col -= 70;
+    addAndMakeVisible(resEnvButton);
+    resEnvButton.setButtonText("Envelope");
+    resEnvButton.setComponentID("button");
+    resEnvButton.setBounds(col-90, row, 90, 25);
+    resEnvButton.onClick = [this]() {
+        audioProcessor.showEnvelopeKnobs = !audioProcessor.showEnvelopeKnobs;
+        toggleUIComponents();
+    };
+    col -= 100;
+
+    addAndMakeVisible(cutEnvOnButton);
+    cutEnvOnButton.setBounds(col-25, row, 25, 25);
+    cutEnvOnButton.setAlpha(0.f);
+    cutEnvOnButton.onClick = [this]() {
+        MessageManager::callAsync([this] {
+            bool on = (bool)audioProcessor.params.getRawParameterValue("cutenvon")->load();
+            audioProcessor.params.getParameter("cutenvon")->setValueNotifyingHost(on ? 0.f : 1.f);
+            toggleUIComponents();
+        });
+    };
+
+    addAndMakeVisible(resEnvOnButton);
+    resEnvOnButton.setBounds(col-25, row, 25, 25);
+    resEnvOnButton.setAlpha(0.f);
+    resEnvOnButton.onClick = [this]() {
+        MessageManager::callAsync([this] {
+            bool on = (bool)audioProcessor.params.getRawParameterValue("resenvon")->load();
+            audioProcessor.params.getParameter("resenvon")->setValueNotifyingHost(on ? 0.f : 1.f);
+            toggleUIComponents();
+        });
+    };
 
     // 4th ROW
     col = PLUG_PADDING;
@@ -634,6 +672,8 @@ FILTRAudioProcessorEditor::~FILTRAudioProcessorEditor()
     audioProcessor.params.removeParameterListener("sync", this);
     audioProcessor.params.removeParameterListener("trigger", this);
     audioProcessor.params.removeParameterListener("pattern", this);
+    audioProcessor.params.removeParameterListener("cutenvon", this);
+    audioProcessor.params.removeParameterListener("resenvon", this);
     audioProcessor.removeChangeListener(this);
 }
 
@@ -768,6 +808,13 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     sequencerButton.setToggleState(uimode == UIMode::Seq || (uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Seq), dontSendNotification);
     paintWidget->toggleUIComponents();
 
+    cutEnvButton.setVisible(!isResMode);
+    cutEnvButton.setToggleState(audioProcessor.showEnvelopeKnobs, dontSendNotification);
+    cutEnvOnButton.setVisible(!isResMode);
+    resEnvButton.setVisible(isResMode);
+    resEnvButton.setToggleState(audioProcessor.showEnvelopeKnobs, dontSendNotification);
+    resEnvOnButton.setVisible(isResMode);
+
     repaint();
 }
 
@@ -883,6 +930,44 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
 
     drawUndoButton(g, undoButton.getBounds().toFloat(), true, Colour(canUndo ? COLOR_ACTIVE : COLOR_NEUTRAL));
     drawUndoButton(g, redoButton.getBounds().toFloat(), false, Colour(canRedo ? COLOR_ACTIVE : COLOR_NEUTRAL));
+
+    // envelope draws
+    bool isResMode = audioProcessor.resonanceEditMode;
+    bool isCutEnvOn = (bool)audioProcessor.params.getRawParameterValue("cutenvon")->load();
+    bool isResEnvOn = (bool)audioProcessor.params.getRawParameterValue("resenvon")->load();
+
+    if (!isResMode) {
+        g.setColour(Colours::white);
+        bounds = cutEnvOnButton.getBounds().toFloat().translated(0.5f, 0.5f);
+        if (isCutEnvOn) {
+            drawPowerButton(g, bounds, Colour(COLOR_ACTIVE));
+        }
+        else {
+            drawPowerButton(g, bounds, Colour(COLOR_NEUTRAL));
+        }
+    }
+    else {
+        g.setColour(Colour(COLOR_ACTIVE));
+        bounds = resEnvOnButton.getBounds().toFloat().translated(0.5f, 0.5f);
+        if (isResEnvOn) {
+            drawPowerButton(g, bounds, Colour(COLOR_ACTIVE));
+        }
+        else {
+            drawPowerButton(g, bounds, Colour(COLOR_NEUTRAL));
+        }
+    }
+}
+
+void FILTRAudioProcessorEditor::drawPowerButton(Graphics& g, Rectangle<float> bounds, Colour color)
+{
+    bounds.expand(-4,-4);
+    auto pi = MathConstants<float>::pi;
+    g.setColour(color);
+    Path p;
+    p.addArc(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 0.75f, 2.f * pi - 0.75f, true);
+    p.startNewSubPath(bounds.getCentreX(), bounds.getY() - 2);
+    p.lineTo(bounds.getCentreX(), bounds.getY() + 4);
+    g.strokePath(p, PathStrokeType(2.f, PathStrokeType::curved, PathStrokeType::rounded));
 }
 
 void FILTRAudioProcessorEditor::drawGear(Graphics& g, Rectangle<int> bounds, float radius, int segs, Colour color, Colour background)
@@ -986,8 +1071,10 @@ void FILTRAudioProcessorEditor::resized()
     useMonitor.setBounds(bounds.withX(col - bounds.getWidth()));
 
     // 3rd row
-    pasteButton.setBounds(pasteButton.getBounds().withRightX(col));
-    copyButton.setBounds(copyButton.getBounds().withRightX(pasteButton.getX() - 10));
+    resEnvButton.setBounds(resEnvButton.getBounds().withRightX(col));
+    cutEnvButton.setBounds(cutEnvButton.getBounds().withRightX(col));
+    cutEnvOnButton.setBounds(cutEnvOnButton.getBounds().withRightX(cutEnvButton.getBounds().getX() - 10));
+    resEnvOnButton.setBounds(resEnvOnButton.getBounds().withRightX(resEnvButton.getBounds().getX() - 10));
 
     // 4th row
     bounds = snapButton.getBounds();
