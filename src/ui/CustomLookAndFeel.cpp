@@ -12,6 +12,7 @@ CustomLookAndFeel::CustomLookAndFeel()
   setColour(TextButton::buttonColourId, Colour(COLOR_ACTIVE));
   setColour(TextButton::buttonOnColourId, Colour(COLOR_ACTIVE));
   setColour(TextButton::textColourOnId, Colour(COLOR_BG));
+  setColour(TextButton::textColourOffId, Colour(COLOR_ACTIVE));
   setColour(BubbleComponent::ColourIds::backgroundColourId, Colour(COLOR_ACTIVE).darker(0.75f));
   setColour(BubbleComponent::ColourIds::outlineColourId, Colours::transparentWhite);
 

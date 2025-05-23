@@ -48,8 +48,8 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("fmorph", "Filter Morph", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float>((float)F_MIN_FREQ, (float)F_MAX_FREQ, Utils::normalToFreqf, Utils::freqToNormalf, noSnap), (float)F_MIN_FREQ),
         std::make_unique<juce::AudioParameterFloat>("res", "Resonance", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("cutoffset", "Cutoff Offset", juce::NormalisableRange<float> (-1.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("resoffset", "Resonance Offset", juce::NormalisableRange<float> (-1.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("cutoffset", "Cutoff Offset", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f, 0.75f, true), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("resoffset", "Resonance Offset", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f, 0.75f, true), 0.0f),
         // audio trigger params
         std::make_unique<juce::AudioParameterChoice>("algo", "Audio Algorithm", StringArray { "Simple", "Drums" }, 0),
         std::make_unique<juce::AudioParameterFloat>("threshold", "Audio Threshold", NormalisableRange<float>(0.0f, 1.0f), 0.5f),
