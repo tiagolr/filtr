@@ -268,8 +268,8 @@ public:
     void clearLatencyBuffers();
     void toggleUseSidechain();
     void toggleMonitorSidechain();
-    double getY(double x, double min, double max);
-    double getYres(double x, double min, double max);
+    double getY(double x, double min, double max, double offset);
+    double getYres(double x, double min, double max, double offset);
     void queuePattern(int patidx);
     void queueResPattern(int patidx);
 

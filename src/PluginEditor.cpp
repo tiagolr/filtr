@@ -378,6 +378,41 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     filterModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "fmode", filterModeMenu);
     col += 100;
 
+    col += 25;
+    addAndMakeVisible(cutoffset);
+    cutoffset.setComponentID("symmetric");
+    cutoffset.setTooltip("Env. Offset - Automate this instead of cutoff so the envelope remains editable.");
+    cutoffset.setSliderStyle(Slider::LinearHorizontal);
+    cutoffset.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
+    cutoffset.setBounds(col-5, row, 120, 25);
+    cutoffset.setPopupDisplayEnabled(true, false, this);
+    cutoffset.setDoubleClickReturnValue(true, 0.5);
+    cutoffset.setColour(Slider::backgroundColourId, Colour(COLOR_BG).brighter(0.1f));
+    cutoffset.setColour(Slider::trackColourId, Colours::white.darker(0.5f));
+    cutoffset.setColour(Slider::thumbColourId, Colours::white);
+    cutoffsetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.params, "cutoffset", cutoffset);
+    cutoffset.textFromValueFunction = [this](double value) {
+        return String("Offset ") + String((int)(value * 100.0)) + " %";
+    };
+
+    addAndMakeVisible(resoffset);
+    resoffset.setComponentID("symmetric");
+    resoffset.setTooltip("Env. Offset - Automate this instead of resonance so the envelope remains editable.");
+    resoffset.setSliderStyle(Slider::LinearHorizontal);
+    resoffset.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
+    resoffset.setBounds(col-5, row, 120, 25);
+    resoffset.setPopupDisplayEnabled(true, false, this);
+    resoffset.setDoubleClickReturnValue(true, 0.5);
+    resoffset.setColour(Slider::backgroundColourId, Colour(COLOR_BG).brighter(0.1f));
+    resoffset.setColour(Slider::trackColourId, Colour(COLOR_ACTIVE).darker(0.5f));
+    resoffset.setColour(Slider::thumbColourId, Colour(COLOR_ACTIVE));
+    resoffsetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.params, "resoffset", resoffset);
+    resoffset.textFromValueFunction = [this](double value) {
+        return String("Offset ") + String((int)(value * 100.0)) + " %";
+    };
+
+    // 3rd ROW RIGHT
+
     col = getWidth() - PLUG_PADDING;
     addAndMakeVisible(pasteButton);
     pasteButton.setButtonText("Paste");
@@ -622,11 +657,13 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 {
     patterns[audioProcessor.pattern->index].get()->setToggleState(true, dontSendNotification);
     respatterns[audioProcessor.respattern->index - 12].get()->setToggleState(true, dontSendNotification);
-    bool showResPatterns = audioProcessor.resonanceEditMode;
+    bool isResMode = audioProcessor.resonanceEditMode;
     for (int i = 0; i < 12; ++i) {
-        patterns[i]->setVisible(!showResPatterns);
-        respatterns[i]->setVisible(showResPatterns);
+        patterns[i]->setVisible(!isResMode);
+        respatterns[i]->setVisible(isResMode);
     }
+    cutoffset.setVisible(!isResMode);
+    resoffset.setVisible(isResMode);
 
     auto ftype = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
     auto trigger = (int)audioProcessor.params.getRawParameterValue("trigger")->load();
@@ -755,12 +792,12 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     g.fillEllipse(pointLabel.getBounds().expanded(-10,-10).toFloat());
 
     // draw filter icon
-    //bounds = Rectangle<int>(resButton.getRight() + 10, resButton.getY(), 20, 25).expanded(0, -7).toFloat();
-    //Path fpath;
-    //fpath.startNewSubPath(bounds.getX(), bounds.getY());
-    //fpath.lineTo(bounds.getX()+6, bounds.getY());
-    //fpath.cubicTo((bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(),(bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(), bounds.getRight(), bounds.getBottom());
-    //g.strokePath(fpath, PathStrokeType(1.f));
+    bounds = Rectangle<int>(filterModeMenu.getRight() + 10, filterModeMenu.getY(), 20, 25).expanded(0, -7).toFloat();
+    Path fpath;
+    fpath.startNewSubPath(bounds.getX(), bounds.getY());
+    fpath.lineTo(bounds.getX()+6, bounds.getY());
+    fpath.cubicTo((bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(),(bounds.getX() + 6 + bounds.getRight()) / 2, bounds.getY(), bounds.getRight(), bounds.getBottom());
+    g.strokePath(fpath, PathStrokeType(1.f));
 
     bounds = audioProcessor.resonanceEditMode ? res->getBounds().toFloat() : cutoff->getBounds().toFloat();
     bounds.removeFromTop(50.f);
@@ -945,8 +982,6 @@ void FILTRAudioProcessorEditor::resized()
     useMonitor.setBounds(bounds.withX(col - bounds.getWidth()));
 
     // 3rd row
-    //filterTypeMenu.setBounds(filterTypeMenu.getBounds().withX(getWidth() / 2 - (90 * 2 + 10) / 2));
-    //filterModeMenu.setBounds(filterModeMenu.getBounds().withX(filterTypeMenu.getBounds().getRight() + 10));
     pasteButton.setBounds(pasteButton.getBounds().withRightX(col));
     copyButton.setBounds(copyButton.getBounds().withRightX(pasteButton.getX() - 10));
 

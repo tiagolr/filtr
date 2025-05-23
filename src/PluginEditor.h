@@ -81,6 +81,10 @@ private:
     std::unique_ptr<Rotary> offset;
     
     std::unique_ptr<Meter> meter;
+    Slider cutoffset;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> cutoffsetAttachment;
+    Slider resoffset;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> resoffsetAttachment;
     ComboBox algoMenu;
     TextButton linkPatsButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;

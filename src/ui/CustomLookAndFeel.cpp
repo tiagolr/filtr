@@ -12,7 +12,8 @@ CustomLookAndFeel::CustomLookAndFeel()
   setColour(TextButton::buttonColourId, Colour(COLOR_ACTIVE));
   setColour(TextButton::buttonOnColourId, Colour(COLOR_ACTIVE));
   setColour(TextButton::textColourOnId, Colour(COLOR_BG));
-  setColour(TextButton::textColourOffId, Colour(COLOR_ACTIVE));
+  setColour(BubbleComponent::ColourIds::backgroundColourId, Colour(COLOR_ACTIVE).darker(0.75f));
+  setColour(BubbleComponent::ColourIds::outlineColourId, Colours::transparentWhite);
 
   typeface = juce::Typeface::createSystemTypefaceFor(BinaryData::UbuntuMedium_ttf, BinaryData::UbuntuMedium_ttfSize);
   setDefaultSansSerifTypeface(typeface);
@@ -29,6 +30,33 @@ int CustomLookAndFeel::getPopupMenuBorderSize()
 {
     return 5;
 }
+
+void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+    float sliderPos, float minSliderPos, float maxSliderPos,
+    const juce::Slider::SliderStyle style, juce::Slider& slider)
+{
+    auto tag = slider.getComponentID();
+    if (tag != "symmetric") {
+        LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
+        return;
+    }
+
+    const float center = (minSliderPos + maxSliderPos) * 0.5f;
+
+    juce::Rectangle<float> trackBounds((float)x, (float)(y + height / 2 - height / 8.f), (float)width, height / 4.f);
+    g.setColour (slider.findColour (Slider::backgroundColourId));
+    g.fillRoundedRectangle(trackBounds, 3.f);
+
+    g.setColour(slider.findColour(Slider::trackColourId));
+    if (sliderPos >= center)
+        g.fillRoundedRectangle(center, trackBounds.getY(), sliderPos - center, trackBounds.getHeight(), 3.f);
+    else
+        g.fillRoundedRectangle(sliderPos, trackBounds.getY(), center - sliderPos, trackBounds.getHeight(), 3.f);
+
+    g.setColour(slider.findColour(Slider::thumbColourId));
+    auto thumbWidth = slider.getHeight() * 0.5f;
+    g.fillEllipse(sliderPos - thumbWidth / 2.f, y + height / 2 - thumbWidth / 2.f, thumbWidth, thumbWidth);
+};
 
 void CustomLookAndFeel::drawButtonBackground (Graphics& g, Button& button, const Colour& backgroundColour, bool isMouseOverButton, bool isButtonDown)
 {

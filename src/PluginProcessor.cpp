@@ -48,6 +48,8 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("fmorph", "Filter Morph", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float>((float)F_MIN_FREQ, (float)F_MAX_FREQ, Utils::normalToFreqf, Utils::freqToNormalf, noSnap), (float)F_MIN_FREQ),
         std::make_unique<juce::AudioParameterFloat>("res", "Resonance", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("cutoffset", "Cutoff Offset", juce::NormalisableRange<float> (-1.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("resoffset", "Resonance Offset", juce::NormalisableRange<float> (-1.0f, 1.0f), 0.0f),
         // audio trigger params
         std::make_unique<juce::AudioParameterChoice>("algo", "Audio Algorithm", StringArray { "Simple", "Drums" }, 0),
         std::make_unique<juce::AudioParameterFloat>("threshold", "Audio Threshold", NormalisableRange<float>(0.0f, 1.0f), 0.5f),
@@ -788,6 +790,8 @@ void FILTRAudioProcessor::restartEnv(bool fromZero)
     double min = (double)params.getRawParameterValue("min")->load();
     double max = (double)params.getRawParameterValue("max")->load();
     double phase = (double)params.getRawParameterValue("phase")->load();
+    double cutoffset = (double)params.getRawParameterValue("cutoffset")->load();
+    double resoffset = (double)params.getRawParameterValue("resoffset")->load();
 
     if (fromZero) { // restart from phase
         xpos = phase;
@@ -799,8 +803,8 @@ void FILTRAudioProcessor::restartEnv(bool fromZero)
         xpos -= std::floor(xpos);
     }
 
-    value->reset(getY(xpos, min, max)); // reset smooth
-    resvalue->reset(getY(xpos, min, max));
+    value->reset(getY(xpos, min, max, cutoffset)); // reset smooth
+    resvalue->reset(getY(xpos, min, max, resoffset));
 }
 
 void FILTRAudioProcessor::onStop()
@@ -850,14 +854,14 @@ void FILTRAudioProcessor::toggleMonitorSidechain()
     lpFilterR.clear(0.0);
 }
 
-double inline FILTRAudioProcessor::getY(double x, double min, double max)
+double inline FILTRAudioProcessor::getY(double x, double min, double max, double offset)
 {
-    return min + (max - min) * (1 - pattern->get_y_at(x));
+    return std::clamp(min + (max - min) * (1 - pattern->get_y_at(x)) + offset, 0.0, 1.0);
 }
 
-double inline FILTRAudioProcessor::getYres(double x, double min, double max)
+double inline FILTRAudioProcessor::getYres(double x, double min, double max, double offset)
 {
-    return min + (max - min) * (1 - respattern->get_y_at(x));
+    return std::clamp(min + (max - min) * (1 - respattern->get_y_at(x)) + offset, 0.0, 1.0);
 }
 
 void FILTRAudioProcessor::setSmooth()
@@ -1018,6 +1022,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     double threshold = (double)params.getRawParameterValue("threshold")->load();
     double sense = 1.0 - (double)params.getRawParameterValue("sense")->load();
     double gain = (double)params.getRawParameterValue("gain")->load();
+    double cutoffset = (double)params.getRawParameterValue("cutoffset")->load();
+    double resoffset = (double)params.getRawParameterValue("resoffset")->load();
     sense = std::pow(sense, 2); // make sensitivity more responsive
 
     // processes draw wave samples
@@ -1277,9 +1283,9 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 : ratePos + phase;
             xpos -= std::floor(xpos);
 
-            double newypos = getY(xpos, min, max);
+            double newypos = getY(xpos, min, max, cutoffset);
             ypos = value->process(newypos, newypos > ypos);
-            double newyres = getYres(xpos, min, max);
+            double newyres = getYres(xpos, min, max, resoffset);
             yres = resvalue->process(newyres, newyres > yres);
 
             auto lsample = (double)upsampledBlock.getSample(0, sample);
@@ -1309,9 +1315,9 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 }
             }
 
-            double newypos = getY(xpos, min, max);
+            double newypos = getY(xpos, min, max, cutoffset);
             ypos = value->process(newypos, newypos > ypos);
-            double newyres = getYres(xpos, min, max);
+            double newyres = getYres(xpos, min, max, resoffset);
             yres = resvalue->process(newyres, newyres > yres);
 
             auto lsample = (double)upsampledBlock.getSample(0, sample);
@@ -1386,9 +1392,9 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 }
             }
 
-            double newypos = getY(xpos, min, max);
+            double newypos = getY(xpos, min, max, cutoffset);
             ypos = value->process(newypos, newypos > ypos);
-            double newyres = getYres(xpos, min, max);
+            double newyres = getYres(xpos, min, max, resoffset);
             yres = resvalue->process(newyres, newyres > yres);
 
             applyFilter(sample, ypos, yres, lsample, rsample);
