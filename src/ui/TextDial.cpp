@@ -25,7 +25,8 @@ void TextDial::paint(juce::Graphics& g) {
     auto value = (int)(audioProcessor.params.getRawParameterValue(paramId)->load() * 100);
     g.setFont(fontSize);
     g.setColour(Colour(fontColor));
-    g.drawFittedText(prefix + String(value) + "%" + suffix, getLocalBounds(), Justification::centredLeft, 1);
+    g.drawFittedText(prefix, getLocalBounds().removeFromTop(getLocalBounds().getHeight() / 2), Justification::centred, 1);
+    g.drawFittedText(String(value) + "%", getLocalBounds().removeFromBottom(getLocalBounds().getHeight() / 2), Justification::centred, 1);
 }
 
 void TextDial::mouseDown(const juce::MouseEvent& e)
@@ -51,7 +52,7 @@ void TextDial::mouseUp(const juce::MouseEvent& e) {
 void TextDial::mouseDrag(const juce::MouseEvent& e) {
     auto change = e.getPosition() - last_mouse_position;
     last_mouse_position = e.getPosition();
-    auto speed = (e.mods.isCtrlDown() ? 40.0f : 4.0f) * 200.0f;
+    auto speed = (e.mods.isShiftDown() ? 40.0f : 4.0f) * 200.0f;
     auto slider_change = float(change.getX() - change.getY()) / speed;
     cur_normed_value += slider_change;
     cur_normed_value = jlimit(0.0f, 1.0f, cur_normed_value);

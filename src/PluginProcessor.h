@@ -219,6 +219,8 @@ public:
     bool showPaintWidget = false;
     bool showSequencer = false;
     bool resonanceEditMode = false;
+    std::atomic<double> rmsLeft = 0.0;
+    std::atomic<double> rmsRight = 0.0;
 
     //==============================================================================
     FILTRAudioProcessor();

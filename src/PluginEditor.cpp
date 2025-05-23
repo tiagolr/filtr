@@ -124,9 +124,13 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     settingsButton->toggleAbout = [this]() { about.get()->setVisible(true); };
     settingsButton->setBounds(col-20,row,25,25);
 
-    mixDial = std::make_unique<TextDial>(p, "mix", "Mix ", "", TextDialLabel::tdPercx100, 16.f, COLOR_NEUTRAL_LIGHT);
+    mixDial = std::make_unique<TextDial>(p, "mix", "Mix", "", TextDialLabel::tdPercx100, 12.f, COLOR_NEUTRAL_LIGHT);
     addAndMakeVisible(*mixDial);
-    mixDial->setBounds(col - 20 - 10 - 65, row, 65, 25);
+    mixDial->setBounds(col - 20 - 10 - 30, row, 30, 25);
+
+    meter = std::make_unique<Meter>(p);
+    addAndMakeVisible(*meter);
+    meter->setBounds(mixDial->getBounds().getX() - 10 - 80, row, 80, 25);
 
     // SECOND ROW
 
@@ -242,11 +246,6 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     morph = std::make_unique<Rotary>(p, "fmorph", "Morph", RotaryLabel::percx100);
     addAndMakeVisible(*morph);
     morph->setBounds(col,row,80,65);
-    col += 75;
-
-    gain = std::make_unique<Rotary>(p, "gain", "Gain", RotaryLabel::dBfloat1, true);
-    addAndMakeVisible(*gain);
-    gain->setBounds(col,row,80,65);
     col += 75;
 
     rate = std::make_unique<Rotary>(p, "rate", "Rate", RotaryLabel::hz1f);
@@ -652,7 +651,6 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     res->setVisible(!showAudioKnobs);
     drive->setVisible(!showAudioKnobs && !showMorph);
     morph->setVisible(!showAudioKnobs && showMorph);
-    gain->setVisible(!showAudioKnobs);
     rate->setVisible(!showAudioKnobs);
     smooth->setVisible(!showAudioKnobs);
     attack->setVisible(!showAudioKnobs);
@@ -669,12 +667,9 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     audioDisplay->setVisible(showAudioKnobs);
 
     if (!showAudioKnobs) {
-        auto col = gain->getBounds().getX();
-        auto row = gain->getBounds().getY();
+        auto col = drive->getBounds().getX();
+        auto row = drive->getBounds().getY();
         col += 75;
-
-        rate->setVisible(sync == 0);
-        if (rate->isVisible()) col += 75;
         
         if (audioProcessor.dualSmooth) {
             smooth->setVisible(false);
@@ -696,6 +691,11 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
         tensionatk->setTopLeftPosition(col, row);
         col += 75;
         tensionrel->setTopLeftPosition(col, row);
+        if (audioProcessor.dualTension) col += 75;
+        rate->setVisible(sync == 0);
+        rate->setTopLeftPosition(col, row);
+        if (rate->isVisible())
+            col += 75;
     }
 
     useSidechain.setVisible(showAudioKnobs);
@@ -934,6 +934,7 @@ void FILTRAudioProcessorEditor::resized()
     auto bounds = settingsButton->getBounds();
     settingsButton->setBounds(bounds.withX(col - bounds.getWidth()));
     mixDial->setBounds(mixDial->getBounds().withRightX(settingsButton->getBounds().getX() - 10));
+    meter->setBounds(meter->getBounds().withRightX(mixDial->getBounds().getX() - 10));
 
     // knobs row
     bounds = audioDisplay->getBounds();

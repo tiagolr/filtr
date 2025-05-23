@@ -21,6 +21,7 @@
 #include "ui/AudioDisplay.h"
 #include "ui/PaintToolWidget.h"
 #include "ui/SequencerWidget.h"
+#include "ui/Meter.h"
 
 using namespace globals;
 
@@ -66,7 +67,6 @@ private:
     std::unique_ptr<Rotary> res;
     std::unique_ptr<Rotary> drive;
     std::unique_ptr<Rotary> morph;
-    std::unique_ptr<Rotary> gain;
     std::unique_ptr<Rotary> rate;
     std::unique_ptr<Rotary> smooth;
     std::unique_ptr<Rotary> attack;
@@ -80,6 +80,7 @@ private:
     std::unique_ptr<Rotary> highcut;
     std::unique_ptr<Rotary> offset;
     
+    std::unique_ptr<Meter> meter;
     ComboBox algoMenu;
     TextButton linkPatsButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;

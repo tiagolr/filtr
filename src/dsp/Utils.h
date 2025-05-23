@@ -21,6 +21,11 @@ public:
         return std::log(norm / F_MIN_FREQ) / std::log(F_MAX_FREQ / F_MIN_FREQ);
     }
 
+    inline static double gainTodB(double gain)
+    {
+        return gain == 0 ? -60.0 : 20.0 * std::log10(gain);
+    }
+
     static float normalToFreqf(float min, float max, float norm)
     {
         return min * std::exp(norm * std::log(max / min));
