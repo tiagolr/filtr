@@ -191,6 +191,16 @@ public:
     RBJ hpFilterR{};
     double hitamp = 0.0; // used to display transient hits on monitor view
 
+    // Envelope follower
+    bool cutenvMonitor = false;
+    bool cutenvSidechain = false;
+    bool cutenvAutoRel = true;
+    bool cutenvRMS = true;
+    bool resenvMonitor = false;
+    bool resenvSidechain = false;
+    bool resenvAutoRel = true;
+    bool resenvRMS = true;
+
     // PlayHead state
     bool playing = false;
     int64_t timeInSamples = 0;

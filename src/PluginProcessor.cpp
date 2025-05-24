@@ -1487,6 +1487,14 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("paintPage", paintPage, nullptr);
     state.setProperty("pointMode", pointMode, nullptr);
     state.setProperty("audioIgnoreHitsWhilePlaying", audioIgnoreHitsWhilePlaying, nullptr);
+    state.setProperty("cutenvMonitor", cutenvMonitor, nullptr);
+    state.setProperty("cutenvSidechain", cutenvSidechain, nullptr);
+    state.setProperty("cutenvAutoRel", cutenvAutoRel, nullptr);
+    state.setProperty("cutenvRMS", cutenvRMS, nullptr);
+    state.setProperty("resenvMonitor", resenvMonitor, nullptr);
+    state.setProperty("resenvSidechain", resenvSidechain, nullptr);
+    state.setProperty("resenvAutoRel", resenvAutoRel, nullptr);
+    state.setProperty("resenvRMS", resenvRMS, nullptr);
 
     for (int i = 0; i < 12; ++i) {
         std::ostringstream oss;
@@ -1554,6 +1562,14 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         paintPage = (int)state.getProperty("paintPage");
         pointMode = state.hasProperty("pointMode") ? (int)state.getProperty("pointMode") : 1;
         audioIgnoreHitsWhilePlaying = (bool)state.getProperty("audioIgnoreHitsWhilePlaying");
+        cutenvMonitor = (bool)state.getProperty("cutenvMonitor");
+        cutenvSidechain = (bool)state.getProperty("cutenvSidechain");
+        cutenvAutoRel = (bool)state.getProperty("cutenvAutoRel");
+        cutenvRMS = (bool)state.getProperty("cutenvRMS");
+        resenvMonitor = (bool)state.getProperty("resenvMonitor");
+        resenvSidechain = (bool)state.getProperty("resenvSidechain");
+        resenvAutoRel = (bool)state.getProperty("resenvAutoRel");
+        resenvRMS = (bool)state.getProperty("resenvRMS");
 
         for (int i = 0; i < 12; ++i) {
             patterns[i]->clear();

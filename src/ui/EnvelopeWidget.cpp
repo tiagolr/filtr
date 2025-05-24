@@ -3,6 +3,11 @@
 
 EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width) : audioProcessor(p), isResenv(isResenv) 
 {
+    audioProcessor.params.addParameterListener(isResenv ? "resenvamt" : "cutenvamt", this);
+    audioProcessor.params.addParameterListener(isResenv ? "resenvlowcut" : "cutenvlowcut", this);
+    audioProcessor.params.addParameterListener(isResenv ? "resenvhighcut" : "cutenvhighcut", this);
+    
+
     int col = 0;
     int row = 5;
 
@@ -32,41 +37,78 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     sidechainBtn.setTooltip("Use sidechain as envelope input");
     sidechainBtn.setBounds(col-25, row, 25, 25);
     sidechainBtn.setAlpha(0.0f);
+    sidechainBtn.onClick = [this, isResenv] {
+        if (isResenv) audioProcessor.resenvSidechain = !audioProcessor.resenvSidechain;
+        else audioProcessor.cutenvSidechain = !audioProcessor.cutenvSidechain;
+        MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
+    };
 
     addAndMakeVisible(monitorBtn);
     monitorBtn.setTooltip("Monitor envelope input");
     monitorBtn.setBounds(col-25, row+35, 25,25);
     monitorBtn.setAlpha(0.0f);
+    monitorBtn.onClick = [this, isResenv] {
+        if (isResenv) audioProcessor.resenvMonitor = !audioProcessor.resenvMonitor;
+        else audioProcessor.cutenvMonitor = !audioProcessor.cutenvMonitor;
+
+        if (isResenv && audioProcessor.resenvMonitor) {
+            audioProcessor.useMonitor = false;
+            audioProcessor.cutenvMonitor = false;
+        }
+
+        if (!isResenv && audioProcessor.cutenvMonitor) {
+            audioProcessor.useMonitor = false;
+            audioProcessor.resenvMonitor = false;
+        }
+
+        MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
+    };
     col -= 35;
 
     addAndMakeVisible(rmsBtn);
     rmsBtn.setTooltip("Toggle between RMS or Peak");
-    rmsBtn.setBounds(col-40, row, 40, 25);
+    rmsBtn.setBounds(col-35, row, 35, 25);
     rmsBtn.setComponentID("small");
     rmsBtn.setButtonText("RMS");
+    rmsBtn.onClick = [this, isResenv] {
+        if (isResenv) audioProcessor.resenvRMS = !audioProcessor.resenvRMS;
+        else audioProcessor.cutenvRMS = !audioProcessor.cutenvRMS;
+        MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
+    };
 
-    addAndMakeVisible(arelBtn);
-    arelBtn.setTooltip("Toggle between standard or adaptive release mode");
-    arelBtn.setBounds(col-40, row+35, 40, 25);
-    arelBtn.setComponentID("small");
-    arelBtn.setButtonText("ARel");
+    addAndMakeVisible(autoRelBtn);
+    autoRelBtn.setTooltip("Toggle auto release mode");
+    autoRelBtn.setBounds(col-35, row+35, 35, 25);
+    autoRelBtn.setComponentID("small");
+    autoRelBtn.setButtonText("AR");
+    autoRelBtn.onClick = [this, isResenv] {
+        if (isResenv) audioProcessor.resenvAutoRel = !audioProcessor.resenvAutoRel;
+        else audioProcessor.cutenvAutoRel = !audioProcessor.cutenvAutoRel;
+        MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
+    };
 
     addAndMakeVisible(filterRange);
     filterRange.setTooltip("Frequency range of the envelope input signal");
     filterRange.setSliderStyle(Slider::SliderStyle::TwoValueHorizontal);
     filterRange.setRange(20.0, 20000.0);
-    filterRange.setMinAndMaxValues(20.0, 20000.0, dontSendNotification);
     filterRange.setSkewFactor(0.5, false);
     filterRange.setTextBoxStyle(Slider::NoTextBox, false, 80, 20);
     filterRange.setBounds(release->getBounds().getRight() - 10, 20, rmsBtn.getBounds().getX() - release->getBounds().getRight() + 10 - 5, 25);
     filterRange.setColour(Slider::backgroundColourId, Colour(COLOR_BG).brighter(0.1f));
     filterRange.setColour(Slider::trackColourId, Colour(COLOR_ACTIVE).darker(0.5f));
     filterRange.setColour(Slider::thumbColourId, Colour(COLOR_ACTIVE));
-    filterRange.onValueChange = [this]() {
+    filterRange.onValueChange = [this, isResenv]() {
         auto lowcut = filterRange.getMinValue();
         auto highcut = filterRange.getMaxValue();
         if (lowcut > highcut)
             filterRange.setMinAndMaxValues(highcut, highcut);
+
+        MessageManager::callAsync([this, lowcut, highcut, isResenv] {
+            auto param = audioProcessor.params.getParameter(isResenv ? "resenvlowcut" : "cutenvlowcut");
+            param->setValueNotifyingHost(param->convertTo0to1((float)lowcut));
+            param = audioProcessor.params.getParameter(isResenv ? "resenvhighcut" : "cutenvhighcut");
+            param->setValueNotifyingHost(param->convertTo0to1((float)highcut));
+        });
 
         auto lowcutstr = lowcut > 1000 ? String(int(lowcut * 10 / 1000.0) / 10.0) + "k" : String((int)lowcut);
         auto highcutstr = highcut > 1000 ? String(int(highcut * 10 / 1000.0) / 10.0) + "k" : String((int)highcut);
@@ -76,12 +118,47 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     filterRange.onDragEnd = [this]() {
         filterLabel.setText("Filter", dontSendNotification);
     };
+    filterRange.setMinAndMaxValues(
+        (double)audioProcessor.params.getRawParameterValue(isResenv ? "resenvlowcut" : "cutenvlowcut")->load(),
+        (double)audioProcessor.params.getRawParameterValue(isResenv ? "resenvhighcut" : "cutenvhighcut")->load(),
+        dontSendNotification
+    );
 
     addAndMakeVisible(filterLabel);
     filterLabel.setFont(FontOptions(16.f));
     filterLabel.setJustificationType(Justification::centredBottom);
     filterLabel.setText("Filter", dontSendNotification);
     filterLabel.setBounds(filterRange.getBounds().withBottomY(65 + 5 + 1));
+}
+
+EnvelopeWidget::~EnvelopeWidget()
+{
+    audioProcessor.params.removeParameterListener(isResenv ? "resenvamt" : "cutenvamt", this);
+    audioProcessor.params.removeParameterListener(isResenv ? "resenvlowcut" : "cutenvlowcut", this);
+    audioProcessor.params.removeParameterListener(isResenv ? "resenvhighcut" : "cutenvhighcut", this);
+}
+
+void EnvelopeWidget::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    bool iscutenvon = (bool)audioProcessor.params.getRawParameterValue("cutenvon")->load();
+    bool isresenvon = (bool)audioProcessor.params.getRawParameterValue("resenvon")->load();
+
+    if (isVisible() && parameterID == "resenvamt" && newValue != 0.0f && !isresenvon) {
+        MessageManager::callAsync([this] {
+            audioProcessor.params.getParameter("resenvon")->setValueNotifyingHost(1.0f);
+        });
+    }
+    if (isVisible() && parameterID == "cutenvamt" && newValue != 0.0f && !iscutenvon) {
+        MessageManager::callAsync([this] {
+            audioProcessor.params.getParameter("cutenvon")->setValueNotifyingHost(1.0f);
+        });
+    }
+    if (parameterID == "cutenvlowcut" || parameterID == "resenvlowcut") {
+        filterRange.setMinValue((double)newValue, dontSendNotification);
+    }
+    if (parameterID == "cutenvhighcut" || parameterID == "resenvhighcut") {
+        filterRange.setMaxValue((double)newValue, dontSendNotification);
+    }
 }
 
 void EnvelopeWidget::paint(juce::Graphics& g) 
@@ -92,10 +169,24 @@ void EnvelopeWidget::paint(juce::Graphics& g)
     g.drawRoundedRectangle(bounds.translated(0.5f, 0.5f), 3.f, 1.f);
 
     g.setColour(Colour(COLOR_ACTIVE));
-    g.drawRoundedRectangle(sidechainBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
-    g.drawRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
-    drawSidechain(g, sidechainBtn.getBounds(), Colour(COLOR_ACTIVE));
-    drawHeadphones(g, monitorBtn.getBounds(), Colour(COLOR_ACTIVE));
+    if ((isResenv && audioProcessor.resenvMonitor) || (!isResenv && audioProcessor.cutenvMonitor)) {
+        g.fillRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f);
+        drawHeadphones(g, monitorBtn.getBounds(), Colour(COLOR_BG));
+    }
+    else {
+        g.drawRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
+        drawHeadphones(g, monitorBtn.getBounds(), Colour(COLOR_ACTIVE));
+    }
+
+    g.setColour(Colour(COLOR_ACTIVE));
+    if ((isResenv && audioProcessor.resenvSidechain) || (!isResenv && audioProcessor.cutenvSidechain)) {
+        g.fillRoundedRectangle(sidechainBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f);
+        drawSidechain(g, sidechainBtn.getBounds(), Colour(COLOR_BG));
+    }
+    else {
+        g.drawRoundedRectangle(sidechainBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
+        drawSidechain(g, sidechainBtn.getBounds(), Colour(COLOR_ACTIVE));
+    }
 }
 
 void EnvelopeWidget::drawHeadphones(Graphics& g, Rectangle<int> bounds, Colour c)
@@ -139,5 +230,7 @@ void EnvelopeWidget::drawSidechain(Graphics& g, Rectangle<int> bounds, Colour c)
 
 void EnvelopeWidget::layoutComponents()
 {
+    rmsBtn.setToggleState((isResenv && audioProcessor.resenvRMS) || (!isResenv && audioProcessor.cutenvRMS), dontSendNotification);
+    autoRelBtn.setToggleState((isResenv && audioProcessor.resenvAutoRel) || (!isResenv && audioProcessor.cutenvAutoRel), dontSendNotification);
     repaint();
 }

@@ -348,6 +348,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     useMonitor.onClick = [this]() {
         MessageManager::callAsync([this] {
             audioProcessor.useMonitor = !audioProcessor.useMonitor;
+            if (audioProcessor.useMonitor) {
+                audioProcessor.cutenvMonitor = false;
+                audioProcessor.resenvMonitor = false;
+            }
             toggleUIComponents();
         });
     };
@@ -989,7 +993,7 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
 
 void FILTRAudioProcessorEditor::drawPowerButton(Graphics& g, Rectangle<float> bounds, Colour color)
 {
-    bounds.expand(-4,-4);
+    bounds.expand(-6,-6);
     auto pi = MathConstants<float>::pi;
     g.setColour(color);
     Path p;

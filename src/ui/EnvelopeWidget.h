@@ -7,7 +7,7 @@
 using namespace globals;
 class FILTRAudioProcessor;
 
-class EnvelopeWidget : public juce::Component
+class EnvelopeWidget : public juce::Component, private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     std::unique_ptr<Rotary> thresh;
@@ -20,9 +20,11 @@ public:
     TextButton sidechainBtn;
     TextButton monitorBtn;
     TextButton rmsBtn;
-    TextButton arelBtn;
+    TextButton autoRelBtn;
 
     EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width);
+    ~EnvelopeWidget() override;
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
 
     void paint(juce::Graphics& g) override;
     void layoutComponents();
@@ -31,6 +33,6 @@ public:
     void drawSidechain(Graphics& g, Rectangle<int> bounds, Colour c);
 
 private:
-    bool isResenv;
+    const bool isResenv;
     FILTRAudioProcessor& audioProcessor;
 };
