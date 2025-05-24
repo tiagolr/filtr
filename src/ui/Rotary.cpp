@@ -115,6 +115,26 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
         else if (format == RotaryLabel::audioOffset) {
             ss << std::fixed << std::setprecision(1) << slider_val * LATENCY_MILLIS << " ms";
             text = ss.str();
+        } 
+        else if (format == envatk) {
+            auto val = ENV_MIN_ATTACK + (ENV_MAX_ATTACK - ENV_MIN_ATTACK) * slider_val;
+            if (val > 1000) {
+                ss << std::fixed << std::setprecision(1) << val << " s";
+            }
+            else {
+                ss << std::fixed << std::setprecision(0) << val << " ms";
+            }
+            text = ss.str();
+        }
+        else if (format == envrel) {
+            auto val = ENV_MIN_RELEASE + (ENV_MAX_RELEASE - ENV_MIN_RELEASE) * slider_val;
+            if (val > 1000) {
+                ss << std::fixed << std::setprecision(1) << val / 1000.0 << " s";
+            }
+            else {
+                ss << std::fixed << std::setprecision(0) << val << " ms";
+            }
+            text = ss.str();
         }
     }
 

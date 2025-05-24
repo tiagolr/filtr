@@ -65,21 +65,12 @@ void CustomLookAndFeel::drawButtonBackground (Graphics& g, Button& button, const
     auto bounds = button.getLocalBounds().toFloat();
     auto cornerSize = 3.0f;
 
-    if (tag == "button") {
+    if (tag == "button" || tag == "small") {
         g.setColour(backgroundColour);
         if (button.getToggleState())
             g.fillRoundedRectangle(bounds, cornerSize);
         else
             g.drawRoundedRectangle(bounds.reduced(0.5, 0.5), cornerSize, 1.0f);
-
-        if (isMouseOverButton) {
-            g.setColour(Colours::black.withAlpha(0.2f));
-            g.fillRoundedRectangle(bounds.expanded(1,1), cornerSize);
-        }
-        if (isButtonDown) {
-            g.setColour(Colours::black.withAlpha(0.4f));
-            g.fillRoundedRectangle(bounds.expanded(1,1), cornerSize);
-        }
 
         return;
     }

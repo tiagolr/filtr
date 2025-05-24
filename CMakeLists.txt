@@ -87,6 +87,8 @@ source_group(Source\\ui
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SequencerWidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Meter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Meter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/EnvelopeWidget.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/EnvelopeWidget.cpp
 )
 
 source_group(Source\\dsp

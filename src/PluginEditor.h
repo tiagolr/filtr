@@ -21,6 +21,7 @@
 #include "ui/AudioDisplay.h"
 #include "ui/PaintToolWidget.h"
 #include "ui/SequencerWidget.h"
+#include "ui/EnvelopeWidget.h"
 #include "ui/Meter.h"
 
 using namespace globals;
@@ -63,6 +64,8 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> patSyncAttachment;
     std::unique_ptr<SettingsButton> settingsButton;
     std::unique_ptr<TextDial> mixDial;
+    std::unique_ptr<EnvelopeWidget> cutenv;
+    std::unique_ptr<EnvelopeWidget> resenv;
 
     std::unique_ptr<Rotary> cutoff;
     std::unique_ptr<Rotary> res;

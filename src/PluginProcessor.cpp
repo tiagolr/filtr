@@ -58,8 +58,20 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("highcut", "Audio HighCut", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f) , 20000.f),
         std::make_unique<juce::AudioParameterFloat>("offset", "Audio Offset", -1.0f, 1.0f, 0.0f),
         // envelope follower params
-        std::make_unique<juce::AudioParameterBool>("cutenvon", "Cut Envelope ON", false),
-        std::make_unique<juce::AudioParameterBool>("resenvon", "Res Envelope ON", false),
+        std::make_unique<juce::AudioParameterBool>("cutenvon", "Cut Env ON", false),
+        std::make_unique<juce::AudioParameterFloat>("cutenvthresh", "Cut Env Thresh", NormalisableRange<float>( 0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("cutenvamt", "Cut Env Amount", NormalisableRange<float>( -5.0f, 5.0f, 0.01f, 0.5, true), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("cutenvatk", "Cut Env Attack", NormalisableRange<float>( 0.f, 1.0f, 0.0001f, 0.75f), 0.f),
+        std::make_unique<juce::AudioParameterFloat>("cutenvrel", "Cut Env Release", NormalisableRange<float>( 0.f, 1.0f, 0.0001f, 0.5f), 0.05f),
+        std::make_unique<juce::AudioParameterFloat>("cutenvlowcut", "Cut Env LowCut", NormalisableRange<float>( 20.f, 20000.0f, 1.f, 0.3f), 20.f),
+        std::make_unique<juce::AudioParameterFloat>("cutenvhighcut", "Cut Env HighCut", NormalisableRange<float>( 20.f, 20000.0f, 1.f, 0.3f), 20000.f),
+        std::make_unique<juce::AudioParameterBool>("resenvon", "Res Env ON", false),
+        std::make_unique<juce::AudioParameterFloat>("resenvthresh", "Res Env Thresh", NormalisableRange<float>( 0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("resenvamt", "Res Env Amount", NormalisableRange<float>( -5.0f, 5.0f, 0.01f, 0.5, true), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("resenvatk", "Res Env Attack", NormalisableRange<float>( 0.f, 1.0f, 0.0001f, 0.75f), 0.f),
+        std::make_unique<juce::AudioParameterFloat>("resenvrel", "Res Env Release", NormalisableRange<float>( 0.f, 1.0f, 0.0001f, 0.5f), 0.05f),
+        std::make_unique<juce::AudioParameterFloat>("resenvlowcut", "Res Env LowCut", NormalisableRange<float>( 20.f, 20000.0f, 1.f, 0.3f), 20.f),
+        std::make_unique<juce::AudioParameterFloat>("resenvhighcut", "Res Env HighCut", NormalisableRange<float>( 20.f, 20000.0f, 1.f, 0.3f), 20000.f),
     })
 #endif
 {

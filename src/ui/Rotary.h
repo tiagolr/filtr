@@ -15,6 +15,8 @@ enum RotaryLabel {
     dBfloat1,
     hz1f,
     percx100,
+    envatk,
+    envrel,
     intx100,
     float1,
     float2,

@@ -18,6 +18,11 @@ public:
         float sliderPos, float minSliderPos, float maxSliderPos,
         const juce::Slider::SliderStyle style, juce::Slider& slider) override;
 
+    juce::Font getTextButtonFont(juce::TextButton& button, int buttonHeight) override {
+        (void)buttonHeight;
+        return button.getComponentID() == "small" ? FontOptions(12.0f) : FontOptions(16.0f);  
+    }
+
 private:
     juce::Typeface::Ptr typeface;
 };

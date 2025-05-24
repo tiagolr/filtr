@@ -352,6 +352,17 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         });
     };
 
+    // ENVELOPE WIDGETS
+    auto b = Rectangle<int>(PLUG_PADDING + 75 * 2, row, getWidth() - (PLUG_PADDING + 75 * 2) + 10, 65);
+    cutenv = std::make_unique<EnvelopeWidget>(p, false, b.getWidth());
+    addAndMakeVisible(*cutenv);
+    cutenv->setBounds(b.expanded(0,4));
+
+    resenv = std::make_unique<EnvelopeWidget>(p, true, b.getWidth());
+    addAndMakeVisible(*resenv);
+    resenv->setBounds(b.expanded(0,5));
+    
+
     // 3RD ROW
     col = PLUG_PADDING;
     row += 75;
@@ -430,6 +441,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     cutEnvButton.setBounds(col-90, row, 90, 25);
     cutEnvButton.onClick = [this]() {
         audioProcessor.showEnvelopeKnobs = !audioProcessor.showEnvelopeKnobs;
+        if (audioProcessor.showEnvelopeKnobs && audioProcessor.showAudioKnobs) {
+            audioProcessor.showAudioKnobs = false;
+        }
         toggleUIComponents();
     };
 
@@ -439,6 +453,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     resEnvButton.setBounds(col-90, row, 90, 25);
     resEnvButton.onClick = [this]() {
         audioProcessor.showEnvelopeKnobs = !audioProcessor.showEnvelopeKnobs;
+        if (audioProcessor.showEnvelopeKnobs && audioProcessor.showAudioKnobs) {
+            audioProcessor.showAudioKnobs = false;
+        }
         toggleUIComponents();
     };
     col -= 100;
@@ -815,6 +832,12 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     resEnvButton.setToggleState(audioProcessor.showEnvelopeKnobs, dontSendNotification);
     resEnvOnButton.setVisible(isResMode);
 
+    cutenv->setVisible(!isResMode && audioProcessor.showEnvelopeKnobs);
+    resenv->setVisible(isResMode && audioProcessor.showEnvelopeKnobs);
+
+    cutenv->layoutComponents();
+    resenv->layoutComponents();
+
     repaint();
 }
 
@@ -853,7 +876,7 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     bounds = audioProcessor.resonanceEditMode ? res->getBounds().toFloat() : cutoff->getBounds().toFloat();
     bounds.removeFromTop(50.f);
     g.setColour((audioProcessor.resonanceEditMode ? Colour(COLOR_ACTIVE) : Colours::white).withAlpha(0.3f));
-    g.fillRoundedRectangle(bounds.toFloat().expanded(-4.f, 2.f).translated(0.5f, 0.5f), 3.f);
+    g.fillRoundedRectangle(bounds.toFloat().expanded(-8.f, 2.f).translated(0.5f, 0.5f), 3.f);
 
     // draw loop play button
     auto trigger = (int)audioProcessor.params.getRawParameterValue("trigger")->load();
@@ -935,6 +958,12 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
     bool isResMode = audioProcessor.resonanceEditMode;
     bool isCutEnvOn = (bool)audioProcessor.params.getRawParameterValue("cutenvon")->load();
     bool isResEnvOn = (bool)audioProcessor.params.getRawParameterValue("resenvon")->load();
+
+    // draw envelope button extension
+    if (audioProcessor.showEnvelopeKnobs) {
+        g.setColour(Colour(isResMode ? COLOR_ACTIVE : 0xffffffff));
+        g.fillRect(cutEnvButton.getBounds().expanded(0, 20).translated(0, -20-15));
+    }
 
     if (!isResMode) {
         g.setColour(Colours::white);
@@ -1069,6 +1098,9 @@ void FILTRAudioProcessorEditor::resized()
     useSidechain.setBounds(bounds.withX(col - bounds.getWidth()));
     bounds = useMonitor.getBounds();
     useMonitor.setBounds(bounds.withX(col - bounds.getWidth()));
+
+    resenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
+    cutenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
 
     // 3rd row
     resEnvButton.setBounds(resEnvButton.getBounds().withRightX(col));
