@@ -70,6 +70,8 @@ private:
     std::unique_ptr<Rotary> cutoff;
     std::unique_ptr<Rotary> res;
     std::unique_ptr<Rotary> drive;
+    std::unique_ptr<Rotary> cutoffset;
+    std::unique_ptr<Rotary> resoffset;
     std::unique_ptr<Rotary> morph;
     std::unique_ptr<Rotary> rate;
     std::unique_ptr<Rotary> smooth;
@@ -85,10 +87,6 @@ private:
     std::unique_ptr<Rotary> offset;
     
     std::unique_ptr<Meter> meter;
-    Slider cutoffset;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> cutoffsetAttachment;
-    Slider resoffset;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> resoffsetAttachment;
     ComboBox algoMenu;
     TextButton linkPatsButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;

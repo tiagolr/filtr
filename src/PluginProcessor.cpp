@@ -131,6 +131,8 @@ FILTRAudioProcessor::FILTRAudioProcessor()
     value = new RCSmoother();
     resvalue = new RCSmoother();
 
+    updateCutoffFromPattern();
+    updateResFromPattern();
     loadSettings();
 }
 
@@ -729,6 +731,23 @@ void FILTRAudioProcessor::onSlider()
         updateResPatternFromRes();
         lres = res;
     }
+
+    bool resenvon = (bool)params.getRawParameterValue("resenvon")->load();
+    bool cutenvon = (bool)params.getRawParameterValue("cutenvon")->load();
+
+    if (cutenvon) {
+        double thresh = (double)params.getRawParameterValue("cutenvthresh")->load();
+        double attack = (double)params.getRawParameterValue("cutenvatk")->load();
+        double release = (double)params.getRawParameterValue("cutenvrel")->load();
+        cutenv.prepare(srate * oversampler.getOversamplingFactor(), thresh, resenvRMS, resenvAutoRel, attack, 0.0, release);
+    }
+
+    if (resenvon) {
+        double thresh = (double)params.getRawParameterValue("resenvthresh")->load();
+        double attack = (double)params.getRawParameterValue("resenvatk")->load();
+        double release = (double)params.getRawParameterValue("resenvrel")->load();
+        resenv.prepare(srate * oversampler.getOversamplingFactor(), thresh, resenvRMS, resenvAutoRel, attack, 0.0, release);
+    }
 }
 
 void FILTRAudioProcessor::updatePatternFromCutoff()
@@ -1039,6 +1058,10 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     double gain = (double)params.getRawParameterValue("gain")->load();
     double cutoffset = (double)params.getRawParameterValue("cutoffset")->load();
     double resoffset = (double)params.getRawParameterValue("resoffset")->load();
+    bool resenvon = (bool)params.getRawParameterValue("resenvon")->load();
+    bool cutenvon = (bool)params.getRawParameterValue("cutenvon")->load();
+    double cutenvamt = (double)params.getRawParameterValue("cutenvamt")->load();
+    double resenvamt = (double)params.getRawParameterValue("resenvamt")->load();
     sense = std::pow(sense, 2); // make sensitivity more responsive
 
     // processes draw wave samples
@@ -1298,13 +1321,24 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 : ratePos + phase;
             xpos -= std::floor(xpos);
 
-            double newypos = getY(xpos, min, max, cutoffset);
-            ypos = value->process(newypos, newypos > ypos);
-            double newyres = getYres(xpos, min, max, resoffset);
-            yres = resvalue->process(newyres, newyres > yres);
-
             auto lsample = (double)upsampledBlock.getSample(0, sample);
             auto rsample = (double)upsampledBlock.getSample(audioInputs == 1 ? 0 : 1, sample);
+
+            auto coffset = cutoffset;
+            if (cutenvon) {
+                auto amp = std::max(std::abs(lsample), std::abs(rsample));
+                coffset = coffset + cutenv.process(amp) * cutenvamt;
+            }
+            auto roffset = resoffset;
+            if (resenvon) {
+                auto amp = std::max(std::abs(lsample), std::abs(rsample));
+                roffset = roffset + resenv.process(amp) * resenvamt;
+            }
+
+            double newypos = getY(xpos, min, max, coffset);
+            ypos = value->process(newypos, newypos > ypos);
+            double newyres = getYres(xpos, min, max, roffset);
+            yres = resvalue->process(newyres, newyres > yres);
             applyFilter(sample, ypos, yres, lsample, rsample);
             processDisplaySample(sample, xpos, lsample, rsample);
         }

@@ -121,6 +121,9 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
             if (val > 1000) {
                 ss << std::fixed << std::setprecision(1) << val << " s";
             }
+            else if (val < 1) {
+                ss << std::fixed << std::setprecision(2) << val << " ms";
+            }
             else {
                 ss << std::fixed << std::setprecision(0) << val << " ms";
             }
@@ -130,6 +133,9 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
             auto val = ENV_MIN_RELEASE + (ENV_MAX_RELEASE - ENV_MIN_RELEASE) * slider_val;
             if (val > 1000) {
                 ss << std::fixed << std::setprecision(1) << val / 1000.0 << " s";
+            }
+            else if (val < 1) {
+                ss << std::fixed << std::setprecision(2) << val << " ms";
             }
             else {
                 ss << std::fixed << std::setprecision(0) << val << " ms";

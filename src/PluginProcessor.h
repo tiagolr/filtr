@@ -26,6 +26,7 @@
 #include "Globals.h"
 #include "ui/Sequencer.h"
 #include "dsp/Utils.h"
+#include "dsp/Follower.h"
 
 using namespace globals;
 
@@ -192,6 +193,8 @@ public:
     double hitamp = 0.0; // used to display transient hits on monitor view
 
     // Envelope follower
+    Follower cutenv;
+    Follower resenv;
     bool cutenvMonitor = false;
     bool cutenvSidechain = false;
     bool cutenvAutoRel = true;

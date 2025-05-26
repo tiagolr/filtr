@@ -41,10 +41,10 @@ namespace globals {
 	inline const int MSEL_PADDING = 8;
 
 	// Envelope follower
-	inline const int ENV_MIN_ATTACK = 10;
-	inline const int ENV_MAX_ATTACK = 200;
-	inline const int ENV_MIN_RELEASE = 10;
-	inline const int ENV_MAX_RELEASE = 10000;
+	inline const double ENV_MIN_ATTACK = 0.01;
+	inline const double ENV_MAX_ATTACK = 200.0;
+	inline const double ENV_MIN_RELEASE = 10.0;
+	inline const double ENV_MAX_RELEASE = 10000.0;
 
 	// paint mode
 	inline const int PAINT_PATS_IDX = 100; // starting index of paint patterns, audio patterns always range 0..11
