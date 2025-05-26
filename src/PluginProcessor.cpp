@@ -46,7 +46,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("flerp", "Filter Lerp", juce::NormalisableRange<float> (0.0f, 1.0f), 0.5f),
         std::make_unique<juce::AudioParameterFloat>("fdrive", "Filter Drive", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("fmorph", "Filter Morph", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float>((float)F_MIN_FREQ, (float)F_MAX_FREQ, Utils::normalToFreqf, Utils::freqToNormalf, noSnap), (float)F_MIN_FREQ),
+        std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float>((float)F_MIN_FREQ, (float)F_MAX_FREQ, Utils::normalToFreqf, Utils::freqToNormalf, noSnap), (float)F_MAX_FREQ),
         std::make_unique<juce::AudioParameterFloat>("res", "Resonance", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("cutoffset", "Cutoff Offset", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f, 0.75f, true), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("resoffset", "Resonance Offset", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f, 0.75f, true), 0.0f),
@@ -93,14 +93,11 @@ FILTRAudioProcessor::FILTRAudioProcessor()
     // init patterns
     for (int i = 0; i < 12; ++i) {
         patterns[i] = new Pattern(i);
-        patterns[i]->insertPoint(0, 1, 0, 1);
-        patterns[i]->insertPoint(0.5, 0, 0, 1);
-        patterns[i]->insertPoint(1, 1, 0, 1);
+        patterns[i]->insertPoint(0.0, 0.0, 0, 1);
         patterns[i]->buildSegments();
 
         respatterns[i] = new Pattern(i+12);
         respatterns[i]->insertPoint(0.0, 0.5, 0, 1);
-        respatterns[i]->insertPoint(1.0, 0.5, 0, 1);
         respatterns[i]->buildSegments();
     }
 
@@ -470,10 +467,18 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         ? (int)std::ceil(oversampler.getLatencyInSamples() + sampleRate * LATENCY_MILLIS / 1000.0)
         : (int)std::ceil(oversampler.getLatencyInSamples())
     );
+    auto maxLatency = (int)std::ceil(oversampler.getLatencyInSamples() + sampleRate * LATENCY_MILLIS / 1000.0);
+    auto maxLatencyBlocks = 0;
+    while (maxLatencyBlocks * samplesPerBlock < maxLatency) {
+        maxLatencyBlocks += 1;
+    }
+
     lpFilterL.clear(0.0);
     lpFilterR.clear(0.0);
     hpFilterL.clear(0.0);
     hpFilterR.clear(0.0);
+    cutenvbuf.resize(maxLatencyBlocks * 2 * samplesPerBlock, 0.0);
+    resenvbuf.resize(maxLatencyBlocks * 2 * samplesPerBlock, 0.0);
     transDetectorL.clear(sampleRate);
     transDetectorR.clear(sampleRate);
     std::fill(monSamples.begin(), monSamples.end(), 0.0);
@@ -611,6 +616,9 @@ void FILTRAudioProcessor::onSlider()
     if (trigger != Trigger::Audio && audioTrigger)
         audioTrigger = false;
 
+    if (trigger != Trigger::Audio && useMonitor) 
+        useMonitor = false;
+
     int pat = (int)params.getRawParameterValue("pattern")->load();
     if (pat != pattern->index + 1 && pat != queuedPattern) {
         queuePattern(pat);
@@ -739,14 +747,14 @@ void FILTRAudioProcessor::onSlider()
         double thresh = (double)params.getRawParameterValue("cutenvthresh")->load();
         double attack = (double)params.getRawParameterValue("cutenvatk")->load();
         double release = (double)params.getRawParameterValue("cutenvrel")->load();
-        cutenv.prepare(srate * oversampler.getOversamplingFactor(), thresh, resenvRMS, resenvAutoRel, attack, 0.0, release);
+        cutenv.prepare(srate, thresh, cutenvAutoRel, attack, 0.0, release);
     }
 
     if (resenvon) {
         double thresh = (double)params.getRawParameterValue("resenvthresh")->load();
         double attack = (double)params.getRawParameterValue("resenvatk")->load();
         double release = (double)params.getRawParameterValue("resenvrel")->load();
-        resenv.prepare(srate * oversampler.getOversamplingFactor(), thresh, resenvRMS, resenvAutoRel, attack, 0.0, release);
+        resenv.prepare(srate, thresh, resenvAutoRel, attack, 0.0, release);
     }
 }
 
@@ -792,6 +800,11 @@ void FILTRAudioProcessor::onPlay()
 {
     clearDrawBuffers();
     clearLatencyBuffers();
+    resenv.clear();
+    cutenv.clear();
+    std::fill(cutenvbuf.begin(), cutenvbuf.end(), 0.0);
+    std::fill(resenvbuf.begin(), resenvbuf.end(), 0.0);
+    envwritepos = 0;
     int trigger = (int)params.getRawParameterValue("trigger")->load();
     double ratehz = (double)params.getRawParameterValue("rate")->load();
     double phase = (double)params.getRawParameterValue("phase")->load();
@@ -985,6 +998,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     double srate = getSampleRate();
     int samplesPerBlock = getBlockSize();
     int samplingFactor = (int)oversampler.getOversamplingFactor();
+    int oslatency = (int)std::ceil(oversampler.getLatencyInSamples());
     bool looping = false;
     double loopStart = 0.0;
     double loopEnd = 0.0;
@@ -1082,6 +1096,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             postSamples[winpos] = postamp;
     };
 
+    // process audio monitor samples
     double monIncrementPerSample = 1.0 / ((srate * 2) / monW); // 2 seconds of audio displayed on monitor
     auto processMonitorSample = [&](double lsamp, double rsamp, bool hit) {
         double indexd = monpos.load();
@@ -1123,6 +1138,33 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 upsampledBlock.setSample(channel, sampidx, wet * mix + dry * (1.0 - mix));
             }
         }
+        };
+
+    // get envelope followers offset with latency and oversampling compensation
+    auto getEnvelopeOffset = [&](int ossample)->std::array<double, 2> {
+        double basePos = ((double)ossample - oslatency) / samplingFactor;
+        int baseIndex = (int)std::floor(basePos);
+        double frac = basePos - baseIndex;
+
+        int index1 = (envreadpos + baseIndex) % cutenvbuf.size();
+        int index2 = (envreadpos + baseIndex + 1) % cutenvbuf.size();
+        std::array<double, 2> res = { 0.0, 0.0 };
+
+        {
+            double env1 = cutenvbuf[index1];
+            double env2 = cutenvbuf[index2];
+            double val = env1 + frac * (env2 - env1);
+            res[0] = val;
+        }
+
+        {
+            double env1 = resenvbuf[index1];
+            double env2 = resenvbuf[index2];
+            double val = env1 + frac * (env2 - env1);
+            res[1] = val;
+        }
+
+        return res;
     };
 
     if (paramChanged) {
@@ -1139,7 +1181,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         juce::MidiMessage message = metadata.getMessage();
         if (message.isNoteOn() || message.isNoteOff()) {
             midiIn.push_back({ // queue midi message
-                metadata.samplePosition,
+                metadata.samplePosition * samplingFactor,
                 message.isNoteOn(),
                 message.getNoteNumber(),
                 message.getVelocity(),
@@ -1240,6 +1282,48 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         }
     }
 
+    // envelope follower processing on raw buffers
+    envreadpos = envwritepos;
+    for (int sample = 0; sample < numSamples; ++sample) {
+        if (resenvon || cutenvon) {
+            double lsample = (double)buffer.getSample(0, sample);
+            double rsample = (double)buffer.getSample(audioInputs > 1 ? 1 : 0, sample);
+            double lsidesample = sideInputs ? (double)buffer.getSample(audioInputs, sample) : 0.0;
+            double rsidesample = sideInputs ? (double)buffer.getSample(sideInputs > 1 ? audioInputs + 1 : audioInputs, sample) : 0.0;
+
+            if (cutenvon) {
+                auto amp = std::max(
+                    std::abs(cutenvSidechain ? lsidesample : lsample), 
+                    std::abs(cutenvSidechain ? rsidesample : rsample)
+                );
+                cutenvbuf[envwritepos] = cutenv.process(amp);
+            }
+
+            if (resenvon) {
+                auto amp = std::max(
+                    std::abs(resenvSidechain ? lsidesample : lsample), 
+                    std::abs(resenvSidechain ? rsidesample : rsample)
+                );
+                resenvbuf[envwritepos] = resenv.process(amp);
+            }
+        }
+        envwritepos = (envwritepos + 1) % (int)cutenvbuf.size();
+    }
+
+    // write sidechain into output buffer
+    if ((cutenvMonitor || resenvMonitor) && (cutenvSidechain || resenvSidechain)) {
+        if (!sideInputs) {
+            buffer.clear();
+        }
+        else {
+            buffer.copyFrom(0, 0, buffer.getReadPointer(audioInputs), numSamples);
+            if (audioInputs > 1) {
+                buffer.copyFrom(1, 0, buffer.getReadPointer(sideInputs > 1 ? audioInputs + 1 : audioInputs), numSamples);
+            }
+        }
+    }
+
+    // main samples loop
     for (int sample = 0; sample < numUpSamples; ++sample) {
         if (playing && looping && beatPos >= loopEnd) {
             beatPos = loopStart + (beatPos - loopEnd);
@@ -1324,15 +1408,15 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             auto lsample = (double)upsampledBlock.getSample(0, sample);
             auto rsample = (double)upsampledBlock.getSample(audioInputs == 1 ? 0 : 1, sample);
 
+            // read envelope follower offset contribution
             auto coffset = cutoffset;
-            if (cutenvon) {
-                auto amp = std::max(std::abs(lsample), std::abs(rsample));
-                coffset = coffset + cutenv.process(amp) * cutenvamt;
-            }
             auto roffset = resoffset;
-            if (resenvon) {
-                auto amp = std::max(std::abs(lsample), std::abs(rsample));
-                roffset = roffset + resenv.process(amp) * resenvamt;
+            if (cutenvon || resenvon) {
+                auto res = getEnvelopeOffset(sample);
+                if (cutenvon)
+                    coffset += res[0] * cutenvamt;
+                if (resenvon)
+                    roffset += res[0] * resenvamt;
             }
 
             double newypos = getY(xpos, min, max, coffset);
@@ -1467,8 +1551,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     drawSeek.store(playing && (trigger == Trigger::Sync || midiTrigger || audioTrigger));
     oversampler.processSamplesDown(block);
 
-    // Convert back to the original buffer type
-    if (trigger != Trigger::Audio || !useMonitor) {
+    // write processed buffer into the output
+    if (!useMonitor && !cutenvMonitor && !resenvMonitor) {
         for (int channel = 0; channel < audioOutputs; ++channel) {
             auto* src = doubleBuffer.getReadPointer(channel);
             auto* dst = buffer.getWritePointer(channel);
@@ -1510,7 +1594,6 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("dualSmooth",dualSmooth, nullptr);
     state.setProperty("dualTension",dualTension, nullptr);
     state.setProperty("triggerChn",triggerChn, nullptr);
-    state.setProperty("useMonitor",useMonitor, nullptr);
     state.setProperty("useSidechain",useSidechain, nullptr);
     state.setProperty("outputCC", outputCC, nullptr);
     state.setProperty("outputCCChan", outputCCChan, nullptr);
@@ -1521,14 +1604,10 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("paintPage", paintPage, nullptr);
     state.setProperty("pointMode", pointMode, nullptr);
     state.setProperty("audioIgnoreHitsWhilePlaying", audioIgnoreHitsWhilePlaying, nullptr);
-    state.setProperty("cutenvMonitor", cutenvMonitor, nullptr);
     state.setProperty("cutenvSidechain", cutenvSidechain, nullptr);
     state.setProperty("cutenvAutoRel", cutenvAutoRel, nullptr);
-    state.setProperty("cutenvRMS", cutenvRMS, nullptr);
-    state.setProperty("resenvMonitor", resenvMonitor, nullptr);
     state.setProperty("resenvSidechain", resenvSidechain, nullptr);
     state.setProperty("resenvAutoRel", resenvAutoRel, nullptr);
-    state.setProperty("resenvRMS", resenvRMS, nullptr);
 
     for (int i = 0; i < 12; ++i) {
         std::ostringstream oss;
@@ -1585,7 +1664,6 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         dualSmooth = (bool)state.getProperty("dualSmooth");
         dualTension = (bool)state.getProperty("dualTension");
         triggerChn = (int)state.getProperty("triggerChn");
-        useMonitor = (bool)state.getProperty("useMonitor");
         useSidechain = (bool)state.getProperty("useSidechain");
         outputCC = (int)state.getProperty("outputCC");
         outputCCChan = (int)state.getProperty("outputCCChan");
@@ -1596,14 +1674,10 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         paintPage = (int)state.getProperty("paintPage");
         pointMode = state.hasProperty("pointMode") ? (int)state.getProperty("pointMode") : 1;
         audioIgnoreHitsWhilePlaying = (bool)state.getProperty("audioIgnoreHitsWhilePlaying");
-        cutenvMonitor = (bool)state.getProperty("cutenvMonitor");
         cutenvSidechain = (bool)state.getProperty("cutenvSidechain");
         cutenvAutoRel = (bool)state.getProperty("cutenvAutoRel");
-        cutenvRMS = (bool)state.getProperty("cutenvRMS");
-        resenvMonitor = (bool)state.getProperty("resenvMonitor");
         resenvSidechain = (bool)state.getProperty("resenvSidechain");
         resenvAutoRel = (bool)state.getProperty("resenvAutoRel");
-        resenvRMS = (bool)state.getProperty("resenvRMS");
 
         for (int i = 0; i < 12; ++i) {
             patterns[i]->clear();

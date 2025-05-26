@@ -195,14 +195,18 @@ public:
     // Envelope follower
     Follower cutenv;
     Follower resenv;
+    std::vector<double> cutenvbuf; // because env followers are processed on non oversampled inputs, they have to be buffered
+    std::vector<double> resenvbuf;
+    int envreadpos = 0;
+    int envwritepos = 0;
     bool cutenvMonitor = false;
     bool cutenvSidechain = false;
     bool cutenvAutoRel = true;
-    bool cutenvRMS = true;
+    bool cutenvMultiply = false;
     bool resenvMonitor = false;
     bool resenvSidechain = false;
     bool resenvAutoRel = true;
-    bool resenvRMS = true;
+    bool resenvMultiply = false;
 
     // PlayHead state
     bool playing = false;

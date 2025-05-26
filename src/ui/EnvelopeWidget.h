@@ -19,7 +19,6 @@ public:
 
     TextButton sidechainBtn;
     TextButton monitorBtn;
-    TextButton rmsBtn;
     TextButton autoRelBtn;
 
     EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width);

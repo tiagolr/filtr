@@ -65,23 +65,6 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     };
     col -= 35;
 
-    addAndMakeVisible(rmsBtn);
-    rmsBtn.setTooltip("Toggle between RMS or Peak");
-    rmsBtn.setBounds(col-35, row, 35, 25);
-    rmsBtn.setComponentID("small");
-    rmsBtn.setButtonText("RMS");
-    if (!isResenv) {
-        rmsBtn.setColour(TextButton::buttonColourId, Colour(0xffffffff));
-        rmsBtn.setColour(TextButton::buttonOnColourId, Colour(0xffffffff));
-        rmsBtn.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
-        rmsBtn.setColour(TextButton::textColourOffId, Colour(0xffffffff));
-    }
-    rmsBtn.onClick = [this, isResenv] {
-        if (isResenv) audioProcessor.resenvRMS = !audioProcessor.resenvRMS;
-        else audioProcessor.cutenvRMS = !audioProcessor.cutenvRMS;
-        MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
-    };
-
     addAndMakeVisible(autoRelBtn);
     autoRelBtn.setTooltip("Toggle auto release mode");
     autoRelBtn.setBounds(col-35, row+35, 35, 25);
@@ -90,7 +73,10 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     autoRelBtn.onClick = [this, isResenv] {
         if (isResenv) audioProcessor.resenvAutoRel = !audioProcessor.resenvAutoRel;
         else audioProcessor.cutenvAutoRel = !audioProcessor.cutenvAutoRel;
-        MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
+        MessageManager::callAsync([this]{ 
+            audioProcessor.onSlider();
+            audioProcessor.sendChangeMessage(); 
+        });
     };
     if (!isResenv) {
         autoRelBtn.setColour(TextButton::buttonColourId, Colour(0xffffffff));
@@ -105,7 +91,7 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     filterRange.setRange(20.0, 20000.0);
     filterRange.setSkewFactor(0.5, false);
     filterRange.setTextBoxStyle(Slider::NoTextBox, false, 80, 20);
-    filterRange.setBounds(release->getBounds().getRight() - 10, 20, rmsBtn.getBounds().getX() - release->getBounds().getRight() + 10 - 5, 25);
+    filterRange.setBounds(release->getBounds().getRight() - 10, 20, autoRelBtn.getBounds().getX() - release->getBounds().getRight() + 10 - 5, 25);
     filterRange.setColour(Slider::backgroundColourId, Colour(COLOR_BG).brighter(0.1f));
     filterRange.setColour(Slider::trackColourId, Colour(COLOR_ACTIVE).darker(0.5f));
     filterRange.setColour(Slider::thumbColourId, Colour(COLOR_ACTIVE));
@@ -252,7 +238,6 @@ void EnvelopeWidget::drawSidechain(Graphics& g, Rectangle<int> bounds, Colour c)
 
 void EnvelopeWidget::layoutComponents()
 {
-    rmsBtn.setToggleState((isResenv && audioProcessor.resenvRMS) || (!isResenv && audioProcessor.cutenvRMS), dontSendNotification);
     autoRelBtn.setToggleState((isResenv && audioProcessor.resenvAutoRel) || (!isResenv && audioProcessor.cutenvAutoRel), dontSendNotification);
     repaint();
 }

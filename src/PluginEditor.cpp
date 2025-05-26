@@ -368,7 +368,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     };
 
     // ENVELOPE WIDGETS
-    auto b = Rectangle<int>(PLUG_PADDING + 75 * 2, row, getWidth() - (PLUG_PADDING + 75 * 2) + 10, 65);
+    auto b = Rectangle<int>(PLUG_PADDING + 75 * 2, row, PLUG_WIDTH - (PLUG_PADDING + 75 * 2) + 10, 65);
     cutenv = std::make_unique<EnvelopeWidget>(p, false, b.getWidth());
     addAndMakeVisible(*cutenv);
     cutenv->setBounds(b.expanded(0,4));
