@@ -72,6 +72,8 @@ void TextDial::mouseDoubleClick(const juce::MouseEvent& e)
 
 void TextDial::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 {
+    if (event.mods.isAnyMouseButtonDown()) 
+        return;
     auto speed = (event.mods.isShiftDown() ? 0.01f : 0.05f);
     auto slider_change = wheel.deltaY > 0 ? speed : wheel.deltaY < 0 ? -speed : 0;
     auto param = audioProcessor.params.getParameter(paramId);

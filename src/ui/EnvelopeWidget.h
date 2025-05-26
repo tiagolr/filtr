@@ -32,6 +32,7 @@ public:
     void drawSidechain(Graphics& g, Rectangle<int> bounds, Colour c);
 
 private:
+    bool isOn = false;
     const bool isResenv;
     FILTRAudioProcessor& audioProcessor;
 };

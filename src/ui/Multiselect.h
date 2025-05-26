@@ -79,6 +79,7 @@ public:
 
     int mouseHover = -1; // flag for hovering selection drag handles, 0 area, 1 top left corner, 2 top center etc..
     std::vector<SelPoint> selectionPoints;
+    bool dragging = false;
 
 private:
     int winx = 0;

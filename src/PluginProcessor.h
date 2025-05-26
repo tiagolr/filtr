@@ -192,21 +192,20 @@ public:
     RBJ hpFilterR{};
     double hitamp = 0.0; // used to display transient hits on monitor view
 
-    // Envelope follower
+    // Envelope follower State
     Follower cutenv;
     Follower resenv;
-    std::vector<double> cutenvbuf; // because env followers are processed on non oversampled inputs, they have to be buffered
-    std::vector<double> resenvbuf;
+    std::vector<double> cutenvBuf; // because env followers are processed on non oversampled inputs, they have to be buffered
+    std::vector<double> resenvBuf;
     int envreadpos = 0;
     int envwritepos = 0;
+    // Envelope follower Settings
     bool cutenvMonitor = false;
     bool cutenvSidechain = false;
     bool cutenvAutoRel = true;
-    bool cutenvMultiply = false;
     bool resenvMonitor = false;
     bool resenvSidechain = false;
     bool resenvAutoRel = true;
-    bool resenvMultiply = false;
 
     // PlayHead state
     bool playing = false;

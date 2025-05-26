@@ -3,10 +3,12 @@
 
 EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width) : audioProcessor(p), isResenv(isResenv) 
 {
+    audioProcessor.params.addParameterListener(isResenv ? "resenvon" : "cutenvon", this);
     audioProcessor.params.addParameterListener(isResenv ? "resenvamt" : "cutenvamt", this);
     audioProcessor.params.addParameterListener(isResenv ? "resenvlowcut" : "cutenvlowcut", this);
     audioProcessor.params.addParameterListener(isResenv ? "resenvhighcut" : "cutenvhighcut", this);
     
+    isOn = (bool)audioProcessor.params.getRawParameterValue(isResenv ? "resenvon" : "cutenvon")->load();
 
     int col = 0;
     int row = 5;
@@ -67,7 +69,7 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
 
     addAndMakeVisible(autoRelBtn);
     autoRelBtn.setTooltip("Toggle auto release mode");
-    autoRelBtn.setBounds(col-35, row+35, 35, 25);
+    autoRelBtn.setBounds(col-25, row, 25, 25);
     autoRelBtn.setComponentID("small");
     autoRelBtn.setButtonText("AR");
     autoRelBtn.onClick = [this, isResenv] {
@@ -134,12 +136,14 @@ EnvelopeWidget::~EnvelopeWidget()
     audioProcessor.params.removeParameterListener(isResenv ? "resenvamt" : "cutenvamt", this);
     audioProcessor.params.removeParameterListener(isResenv ? "resenvlowcut" : "cutenvlowcut", this);
     audioProcessor.params.removeParameterListener(isResenv ? "resenvhighcut" : "cutenvhighcut", this);
+    audioProcessor.params.removeParameterListener(isResenv ? "resenvon" : "cutenvon", this);
 }
 
 void EnvelopeWidget::parameterChanged(const juce::String& parameterID, float newValue)
 {
     bool iscutenvon = (bool)audioProcessor.params.getRawParameterValue("cutenvon")->load();
     bool isresenvon = (bool)audioProcessor.params.getRawParameterValue("resenvon")->load();
+    isOn = (isResenv && isresenvon) || (!isResenv && iscutenvon);
 
     if (isVisible() && parameterID == "resenvamt" && newValue != 0.0f && !isresenvon) {
         MessageManager::callAsync([this] {
@@ -167,23 +171,27 @@ void EnvelopeWidget::parameterChanged(const juce::String& parameterID, float new
     if (parameterID == "cutenvhighcut" || parameterID == "resenvhighcut") {
         filterRange.setMaxValue((double)newValue, dontSendNotification);
     }
+    repaint();
 }
 
 void EnvelopeWidget::paint(juce::Graphics& g) 
 {
+    g.setColour(Colour(COLOR_BG));
+    g.fillAll();
     auto bounds = getLocalBounds().expanded(0, -1).toFloat();
-    g.fillAll(Colour(COLOR_BG));
+    g.setColour(Colour(COLOR_BG).darker(0.125f));
+    g.fillRoundedRectangle(bounds, 3.f);
     g.setColour(Colour(isResenv ? COLOR_ACTIVE : 0xffffffff).withAlpha(0.5f));
     g.drawRoundedRectangle(bounds.translated(0.5f, 0.5f), 3.f, 1.f);
 
-    g.setColour(isResenv ? Colour(COLOR_ACTIVE) : Colours::white);
+    g.setColour((isResenv ? Colour(COLOR_ACTIVE) : Colours::white).withAlpha(isOn ? 1.0f : 0.5f));
     if ((isResenv && audioProcessor.resenvMonitor) || (!isResenv && audioProcessor.cutenvMonitor)) {
         g.fillRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f);
         drawHeadphones(g, monitorBtn.getBounds(), Colour(COLOR_BG));
     }
     else {
         g.drawRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
-        drawHeadphones(g, monitorBtn.getBounds(), isResenv ? Colour(COLOR_ACTIVE) : Colours::white);
+        drawHeadphones(g, monitorBtn.getBounds(), (isResenv ? Colour(COLOR_ACTIVE) : Colours::white).withAlpha(isOn ? 1.0f : 0.5f));
     }
 
     g.setColour(isResenv ? Colour(COLOR_ACTIVE) : Colours::white);

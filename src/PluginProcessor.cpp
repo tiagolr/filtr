@@ -477,8 +477,8 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     lpFilterR.clear(0.0);
     hpFilterL.clear(0.0);
     hpFilterR.clear(0.0);
-    cutenvbuf.resize(maxLatencyBlocks * 2 * samplesPerBlock, 0.0);
-    resenvbuf.resize(maxLatencyBlocks * 2 * samplesPerBlock, 0.0);
+    cutenvBuf.resize(maxLatencyBlocks * 2 * samplesPerBlock, 0.0);
+    resenvBuf.resize(maxLatencyBlocks * 2 * samplesPerBlock, 0.0);
     transDetectorL.clear(sampleRate);
     transDetectorR.clear(sampleRate);
     std::fill(monSamples.begin(), monSamples.end(), 0.0);
@@ -747,14 +747,18 @@ void FILTRAudioProcessor::onSlider()
         double thresh = (double)params.getRawParameterValue("cutenvthresh")->load();
         double attack = (double)params.getRawParameterValue("cutenvatk")->load();
         double release = (double)params.getRawParameterValue("cutenvrel")->load();
-        cutenv.prepare(srate, thresh, cutenvAutoRel, attack, 0.0, release);
+        double cutenvlowcut = (double)params.getRawParameterValue("cutenvlowcut")->load();
+        double cutenvhighcut = (double)params.getRawParameterValue("cutenvhighcut")->load();
+        cutenv.prepare(srate, thresh, cutenvAutoRel, attack, 0.0, release, cutenvlowcut, cutenvhighcut);
     }
 
     if (resenvon) {
         double thresh = (double)params.getRawParameterValue("resenvthresh")->load();
         double attack = (double)params.getRawParameterValue("resenvatk")->load();
         double release = (double)params.getRawParameterValue("resenvrel")->load();
-        resenv.prepare(srate, thresh, resenvAutoRel, attack, 0.0, release);
+        double resenvlowcut = (double)params.getRawParameterValue("resenvlowcut")->load();
+        double resenvhighcut = (double)params.getRawParameterValue("resenvhighcut")->load();
+        resenv.prepare(srate, thresh, resenvAutoRel, attack, 0.0, release, resenvlowcut, resenvhighcut);
     }
 }
 
@@ -802,8 +806,8 @@ void FILTRAudioProcessor::onPlay()
     clearLatencyBuffers();
     resenv.clear();
     cutenv.clear();
-    std::fill(cutenvbuf.begin(), cutenvbuf.end(), 0.0);
-    std::fill(resenvbuf.begin(), resenvbuf.end(), 0.0);
+    std::fill(cutenvBuf.begin(), cutenvBuf.end(), 0.0);
+    std::fill(resenvBuf.begin(), resenvBuf.end(), 0.0);
     envwritepos = 0;
     int trigger = (int)params.getRawParameterValue("trigger")->load();
     double ratehz = (double)params.getRawParameterValue("rate")->load();
@@ -1146,20 +1150,20 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         int baseIndex = (int)std::floor(basePos);
         double frac = basePos - baseIndex;
 
-        int index1 = (envreadpos + baseIndex) % cutenvbuf.size();
-        int index2 = (envreadpos + baseIndex + 1) % cutenvbuf.size();
+        int index1 = (envreadpos + baseIndex) % cutenvBuf.size();
+        int index2 = (envreadpos + baseIndex + 1) % cutenvBuf.size();
         std::array<double, 2> res = { 0.0, 0.0 };
 
         {
-            double env1 = cutenvbuf[index1];
-            double env2 = cutenvbuf[index2];
+            double env1 = cutenvBuf[index1];
+            double env2 = cutenvBuf[index2];
             double val = env1 + frac * (env2 - env1);
             res[0] = val;
         }
 
         {
-            double env1 = resenvbuf[index1];
-            double env2 = resenvbuf[index2];
+            double env1 = resenvBuf[index1];
+            double env2 = resenvBuf[index2];
             double val = env1 + frac * (env2 - env1);
             res[1] = val;
         }
@@ -1292,35 +1296,32 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             double rsidesample = sideInputs ? (double)buffer.getSample(sideInputs > 1 ? audioInputs + 1 : audioInputs, sample) : 0.0;
 
             if (cutenvon) {
-                auto amp = std::max(
-                    std::abs(cutenvSidechain ? lsidesample : lsample), 
-                    std::abs(cutenvSidechain ? rsidesample : rsample)
+                cutenvBuf[envwritepos] = cutenv.process(
+                    cutenvSidechain ? lsidesample : lsample,
+                    cutenvSidechain ? rsidesample : rsample
                 );
-                cutenvbuf[envwritepos] = cutenv.process(amp);
+                if (cutenvMonitor) {
+                    buffer.setSample(0, sample, (FloatType)cutenv.outl);
+                    if (audioInputs > 1) {
+                        buffer.setSample(1, sample, (FloatType)cutenv.outr);
+                    }
+                }
             }
-
+            
             if (resenvon) {
-                auto amp = std::max(
-                    std::abs(resenvSidechain ? lsidesample : lsample), 
-                    std::abs(resenvSidechain ? rsidesample : rsample)
+                resenvBuf[envwritepos] = resenv.process(
+                    resenvSidechain ? lsidesample : lsample,
+                    resenvSidechain ? rsidesample : rsample
                 );
-                resenvbuf[envwritepos] = resenv.process(amp);
+                if (resenvMonitor) {
+                    buffer.setSample(0, sample, (FloatType)resenv.outl);
+                    if (audioInputs > 1) {
+                        buffer.setSample(1, sample, (FloatType)resenv.outr);
+                    }
+                }
             }
         }
-        envwritepos = (envwritepos + 1) % (int)cutenvbuf.size();
-    }
-
-    // write sidechain into output buffer
-    if ((cutenvMonitor || resenvMonitor) && (cutenvSidechain || resenvSidechain)) {
-        if (!sideInputs) {
-            buffer.clear();
-        }
-        else {
-            buffer.copyFrom(0, 0, buffer.getReadPointer(audioInputs), numSamples);
-            if (audioInputs > 1) {
-                buffer.copyFrom(1, 0, buffer.getReadPointer(sideInputs > 1 ? audioInputs + 1 : audioInputs), numSamples);
-            }
-        }
+        envwritepos = (envwritepos + 1) % (int)cutenvBuf.size();
     }
 
     // main samples loop
@@ -1552,7 +1553,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     oversampler.processSamplesDown(block);
 
     // write processed buffer into the output
-    if (!useMonitor && !cutenvMonitor && !resenvMonitor) {
+    if (!useMonitor && !(cutenvon && cutenvMonitor) && !(resenvon && resenvMonitor)) {
         for (int channel = 0; channel < audioOutputs; ++channel) {
             auto* src = doubleBuffer.getReadPointer(channel);
             auto* dst = buffer.getWritePointer(channel);
