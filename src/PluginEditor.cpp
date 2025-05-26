@@ -383,6 +383,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     row += 75;
 
     addAndMakeVisible(filterTypeMenu);
+    filterTypeMenu.setComponentID("small");
     filterTypeMenu.addSectionHeading("Filter Type");
     filterTypeMenu.addItem("Linear 12", 1);
     filterTypeMenu.addItem("Linear 24", 2);
@@ -394,9 +395,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     filterTypeMenu.addItem("303", 8);
     filterTypeMenu.addItem("Phaser +", 9);
     filterTypeMenu.addItem("Phaser -", 10);
-    filterTypeMenu.setBounds(col, row, 90, 25);
+    filterTypeMenu.setBounds(col, row, 75, 25);
     filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "ftype", filterTypeMenu);
-    col += 100;
+    col += 85;
 
     addAndMakeVisible(filterModeMenu);
     filterModeMenu.addSectionHeading("Filter Mode");
@@ -405,9 +406,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     filterModeMenu.addItem("HP", 3);
     filterModeMenu.addItem("Notch", 4);
     filterModeMenu.addItem("Peak", 5);
-    filterModeMenu.setBounds(col, row, 90, 25);
+    filterModeMenu.setBounds(col, row, 75, 25);
     filterModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "fmode", filterModeMenu);
-    col += 100;
+    col += 85;
 
     col += 25;
 
@@ -470,7 +471,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     addAndMakeVisible(paintButton);
     paintButton.setButtonText("Paint");
     paintButton.setComponentID("button");
-    paintButton.setBounds(col, row, 90, 25);
+    paintButton.setBounds(col, row, 75, 25);
     paintButton.onClick = [this]() {
         if (audioProcessor.uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Paint) {
             audioProcessor.setUIMode(UIMode::Normal);
@@ -479,12 +480,12 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
             audioProcessor.togglePaintMode();
         }
     };
-    col += 100;
+    col += 85;
 
     addAndMakeVisible(sequencerButton);
     sequencerButton.setButtonText("Seq");
     sequencerButton.setComponentID("button");
-    sequencerButton.setBounds(col, row, 90, 25);
+    sequencerButton.setBounds(col, row, 75, 25);
     sequencerButton.onClick = [this]() {
         if (audioProcessor.uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Seq) {
             audioProcessor.setUIMode(UIMode::Normal);
@@ -494,7 +495,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         }
     };
 
-    col += 100;
+    col += 85;
     addAndMakeVisible(pointLabel);
     pointLabel.setText("p", dontSendNotification);
     pointLabel.setBounds(col-2,row,25,25);
@@ -728,7 +729,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     bool showAudioKnobs = audioProcessor.showAudioKnobs;
     bool isPhaser = ftype == kPhaserPos || ftype == kPhaserNeg;
 
-    filterModeMenu.setEnabled(!isPhaser);
+    filterModeMenu.setVisible(!isPhaser);
 
     // layout knobs
     cutoff->setVisible(!showAudioKnobs);

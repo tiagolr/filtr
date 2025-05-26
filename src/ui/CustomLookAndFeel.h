@@ -23,6 +23,11 @@ public:
         return button.getComponentID() == "small" ? FontOptions(12.0f) : FontOptions(16.0f);  
     }
 
+    juce::Font getComboBoxFont (juce::ComboBox& box) override
+    {
+        return box.getComponentID() == "small" ? FontOptions(12.0f) : FontOptions(16.0f);
+    }
+
 private:
     juce::Typeface::Ptr typeface;
 };

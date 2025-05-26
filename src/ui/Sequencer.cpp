@@ -317,21 +317,30 @@ std::vector<Rectangle<int>> Sequencer::getSegButtons()
 
 void Sequencer::open()
 {
-    backup = audioProcessor.pattern->points;
-    patternIdx = audioProcessor.pattern->index;
+    auto currpat = getCurrentPattern();
+    backup = currpat->points;
+    patternIdx = currpat->index;
     build();
-    audioProcessor.pattern->points = pat->points;
-    audioProcessor.pattern->buildSegments();
+    currpat->points = pat->points;
+    currpat->buildSegments();
 }
 
 void Sequencer::close()
 {
-    if (audioProcessor.pattern->index != patternIdx)
+    auto currpat = getCurrentPattern();
+    if (currpat->index != patternIdx)
         return;
 
     patternIdx = -1;
-    audioProcessor.pattern->points = backup;
-    audioProcessor.pattern->buildSegments();
+    currpat->points = backup;
+    currpat->buildSegments();
+}
+
+Pattern* Sequencer::getCurrentPattern()
+{
+    return audioProcessor.resonanceEditMode
+        ? audioProcessor.respattern
+        : audioProcessor.pattern;
 }
 
 void Sequencer::clear()
@@ -388,10 +397,10 @@ void Sequencer::build()
 
     pat->points = removeCollinearPoints(pat->points);
     processLinkCells(pat->points, (int)grid);
-    auto& pattern = audioProcessor.pattern;
-    pattern->points = pat->points;
-    pattern->sortPoints();
-    pattern->buildSegments();
+    auto currpat = getCurrentPattern();
+    currpat->points = pat->points;
+    currpat->sortPoints();
+    currpat->buildSegments();
 }
 
 /**

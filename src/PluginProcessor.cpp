@@ -251,10 +251,16 @@ void FILTRAudioProcessor::createUndoPointFromSnapshot(std::vector<PPoint> snapsh
 void FILTRAudioProcessor::setResonanceEditMode(bool isResonance)
 {
     MessageManager::callAsync([this, isResonance] {
+        if (uimode == UIMode::Seq) {
+            sequencer->close();
+        }
         resonanceEditMode = isResonance;
         if (uimode != UIMode::PaintEdit) {
             viewPattern = resonanceEditMode ? respattern : pattern;
             viewSubPattern = resonanceEditMode ? pattern : respattern;
+        }
+        if (uimode == UIMode::Seq) {
+            sequencer->open();
         }
         sendChangeMessage();
     });

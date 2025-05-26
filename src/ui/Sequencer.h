@@ -67,6 +67,7 @@ public:
     void apply();
     void clear();
     void build();
+    Pattern* getCurrentPattern();
     std::vector<PPoint> buildSeg(double minx, double maxx, Cell cell);
     std::vector<Rectangle<int>> getSegButtons();
     void rotateRight();
