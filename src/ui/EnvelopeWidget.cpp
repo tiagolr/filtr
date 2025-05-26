@@ -14,22 +14,22 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     thresh = std::make_unique<Rotary>(p, isResenv ? "resenvthresh" : "cutenvthresh", "Thresh", RotaryLabel::gainTodB1f, false);
     addAndMakeVisible(*thresh);
     thresh->setBounds(col,row,80,65);
-    col += 70;
+    col += 75;
 
     amount = std::make_unique<Rotary>(p, isResenv ? "resenvamt" : "cutenvamt", "Amount", RotaryLabel::percx100, true);
     addAndMakeVisible(*amount);
     amount->setBounds(col,row,80,65);
-    col += 70;
+    col += 75;
 
     attack = std::make_unique<Rotary>(p, isResenv ? "resenvatk" : "cutenvatk", "Attack", RotaryLabel::envatk);
     addAndMakeVisible(*attack);
     attack->setBounds(col,row,80,65);
-    col += 70;
+    col += 75;
 
     release = std::make_unique<Rotary>(p, isResenv ? "resenvrel" : "cutenvrel", "Release", RotaryLabel::envrel);
     addAndMakeVisible(*release);
     release->setBounds(col,row,80,65);
-    col += 70;
+    col += 75;
 
     col = width - 10 - PLUG_PADDING;
     row += 3; // align buttons middle
@@ -70,6 +70,12 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
     rmsBtn.setBounds(col-35, row, 35, 25);
     rmsBtn.setComponentID("small");
     rmsBtn.setButtonText("RMS");
+    if (!isResenv) {
+        rmsBtn.setColour(TextButton::buttonColourId, Colour(0xffffffff));
+        rmsBtn.setColour(TextButton::buttonOnColourId, Colour(0xffffffff));
+        rmsBtn.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
+        rmsBtn.setColour(TextButton::textColourOffId, Colour(0xffffffff));
+    }
     rmsBtn.onClick = [this, isResenv] {
         if (isResenv) audioProcessor.resenvRMS = !audioProcessor.resenvRMS;
         else audioProcessor.cutenvRMS = !audioProcessor.cutenvRMS;
@@ -86,6 +92,12 @@ EnvelopeWidget::EnvelopeWidget(FILTRAudioProcessor& p, bool isResenv, int width)
         else audioProcessor.cutenvAutoRel = !audioProcessor.cutenvAutoRel;
         MessageManager::callAsync([this]{ audioProcessor.sendChangeMessage(); });
     };
+    if (!isResenv) {
+        autoRelBtn.setColour(TextButton::buttonColourId, Colour(0xffffffff));
+        autoRelBtn.setColour(TextButton::buttonOnColourId, Colour(0xffffffff));
+        autoRelBtn.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
+        autoRelBtn.setColour(TextButton::textColourOffId, Colour(0xffffffff));
+    }
 
     addAndMakeVisible(filterRange);
     filterRange.setTooltip("Frequency range of the envelope input signal");
@@ -148,9 +160,19 @@ void EnvelopeWidget::parameterChanged(const juce::String& parameterID, float new
             audioProcessor.params.getParameter("resenvon")->setValueNotifyingHost(1.0f);
         });
     }
+    if (isVisible() && parameterID == "resenvamt" && newValue == 0.0f && isresenvon) {
+        MessageManager::callAsync([this] {
+            audioProcessor.params.getParameter("resenvon")->setValueNotifyingHost(0.0f);
+        });
+    }
     if (isVisible() && parameterID == "cutenvamt" && newValue != 0.0f && !iscutenvon) {
         MessageManager::callAsync([this] {
             audioProcessor.params.getParameter("cutenvon")->setValueNotifyingHost(1.0f);
+        });
+    }
+    if (isVisible() && parameterID == "cutenvamt" && newValue == 0.0f && iscutenvon) {
+        MessageManager::callAsync([this] {
+            audioProcessor.params.getParameter("cutenvon")->setValueNotifyingHost(0.0f);
         });
     }
     if (parameterID == "cutenvlowcut" || parameterID == "resenvlowcut") {
@@ -168,24 +190,24 @@ void EnvelopeWidget::paint(juce::Graphics& g)
     g.setColour(Colour(isResenv ? COLOR_ACTIVE : 0xffffffff).withAlpha(0.5f));
     g.drawRoundedRectangle(bounds.translated(0.5f, 0.5f), 3.f, 1.f);
 
-    g.setColour(Colour(COLOR_ACTIVE));
+    g.setColour(isResenv ? Colour(COLOR_ACTIVE) : Colours::white);
     if ((isResenv && audioProcessor.resenvMonitor) || (!isResenv && audioProcessor.cutenvMonitor)) {
         g.fillRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f);
         drawHeadphones(g, monitorBtn.getBounds(), Colour(COLOR_BG));
     }
     else {
         g.drawRoundedRectangle(monitorBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
-        drawHeadphones(g, monitorBtn.getBounds(), Colour(COLOR_ACTIVE));
+        drawHeadphones(g, monitorBtn.getBounds(), isResenv ? Colour(COLOR_ACTIVE) : Colours::white);
     }
 
-    g.setColour(Colour(COLOR_ACTIVE));
+    g.setColour(isResenv ? Colour(COLOR_ACTIVE) : Colours::white);
     if ((isResenv && audioProcessor.resenvSidechain) || (!isResenv && audioProcessor.cutenvSidechain)) {
         g.fillRoundedRectangle(sidechainBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f);
         drawSidechain(g, sidechainBtn.getBounds(), Colour(COLOR_BG));
     }
     else {
         g.drawRoundedRectangle(sidechainBtn.getBounds().toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
-        drawSidechain(g, sidechainBtn.getBounds(), Colour(COLOR_ACTIVE));
+        drawSidechain(g, sidechainBtn.getBounds(), isResenv ? Colour(COLOR_ACTIVE) : Colours::white);
     }
 }
 

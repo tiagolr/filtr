@@ -135,7 +135,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
 
     meter = std::make_unique<Meter>(p);
     addAndMakeVisible(*meter);
-    meter->setBounds(mixDial->getBounds().getX() - 10 - 80, row, 80, 25);
+    meter->setBounds(mixDial->getBounds().getX() - 10 - 78, row, 78, 25);
 
     // SECOND ROW
 
