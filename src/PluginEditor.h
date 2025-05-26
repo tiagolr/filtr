@@ -23,6 +23,7 @@
 #include "ui/SequencerWidget.h"
 #include "ui/EnvelopeWidget.h"
 #include "ui/Meter.h"
+#include "ui/AudioWidget.h"
 
 using namespace globals;
 
@@ -80,12 +81,8 @@ private:
     std::unique_ptr<Rotary> tension;
     std::unique_ptr<Rotary> tensionatk;
     std::unique_ptr<Rotary> tensionrel;
-    std::unique_ptr<Rotary> threshold;
-    std::unique_ptr<Rotary> sense;
-    std::unique_ptr<Rotary> lowcut;
-    std::unique_ptr<Rotary> highcut;
-    std::unique_ptr<Rotary> offset;
     
+    std::unique_ptr<AudioWidget> audioWidget;
     std::unique_ptr<Meter> meter;
     ComboBox algoMenu;
     TextButton linkPatsButton;
@@ -98,14 +95,11 @@ private:
     TextButton resEnvOnButton;
     TextButton cutEnvButton;
     TextButton cutEnvOnButton;
-    TextButton useSidechain;
-    TextButton useMonitor;
     TextButton nudgeRightButton;
     Label nudgeLabel;
     TextButton nudgeLeftButton;
     TextButton undoButton;
     TextButton redoButton;
-    std::unique_ptr<AudioDisplay> audioDisplay;
     TextButton paintButton;
     TextButton sequencerButton;
     ComboBox pointMenu;

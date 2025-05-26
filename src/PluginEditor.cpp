@@ -299,73 +299,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     col += 75;
 
     // AUDIO KNOBS
-    col = PLUG_PADDING;
-
-    threshold = std::make_unique<Rotary>(p, "threshold", "Thres", RotaryLabel::gainTodB1f, false, COLOR_AUDIO);
-    addAndMakeVisible(*threshold);
-    threshold->setBounds(col,row,80,65);
-    col += 75;
-
-    sense = std::make_unique<Rotary>(p, "sense", "Sense", RotaryLabel::percx100, false, COLOR_AUDIO);
-    addAndMakeVisible(*sense);
-    sense->setBounds(col,row,80,65);
-    col += 75;
-
-    lowcut = std::make_unique<Rotary>(p, "lowcut", "Low Cut", RotaryLabel::hzHp, false, COLOR_AUDIO);
-    addAndMakeVisible(*lowcut);
-    lowcut->setBounds(col,row,80,65);
-    col += 75;
-
-    highcut = std::make_unique<Rotary>(p, "highcut", "Hi Cut", RotaryLabel::hzLp, false, COLOR_AUDIO);
-    addAndMakeVisible(*highcut);
-    highcut->setBounds(col,row,80,65);
-    col += 75;
-
-    offset = std::make_unique<Rotary>(p, "offset", "Offset", RotaryLabel::audioOffset, true, COLOR_AUDIO);
-    addAndMakeVisible(*offset);
-    offset->setBounds(col,row,80,65);
-    col += 75;
-
-    audioDisplay = std::make_unique<AudioDisplay>(p);
-    addAndMakeVisible(*audioDisplay);
-    audioDisplay->setBounds(col,row,getWidth() - col - PLUG_PADDING - 80 - 10, 65);
-
-    col = getWidth() - PLUG_PADDING - 80;
-    addAndMakeVisible(useSidechain);
-    useSidechain.setTooltip("Use sidechain for transient detection");
-    useSidechain.setButtonText("Sidechain");
-    useSidechain.setComponentID("button");
-    useSidechain.setColour(TextButton::buttonColourId, Colour(COLOR_AUDIO));
-    useSidechain.setColour(TextButton::buttonOnColourId, Colour(COLOR_AUDIO));
-    useSidechain.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
-    useSidechain.setColour(TextButton::textColourOffId, Colour(COLOR_AUDIO));
-    useSidechain.setBounds(col,row,80,25);
-    useSidechain.onClick = [this]() {
-        MessageManager::callAsync([this] {
-            audioProcessor.useSidechain = !audioProcessor.useSidechain;
-            toggleUIComponents();
-        });
-    };
-
-    addAndMakeVisible(useMonitor);
-    useMonitor.setTooltip("Monitor signal used for transient detection");
-    useMonitor.setButtonText("Monitor");
-    useMonitor.setComponentID("button");
-    useMonitor.setColour(TextButton::buttonColourId, Colour(COLOR_AUDIO));
-    useMonitor.setColour(TextButton::buttonOnColourId, Colour(COLOR_AUDIO));
-    useMonitor.setColour(TextButton::textColourOnId, Colour(COLOR_BG));
-    useMonitor.setColour(TextButton::textColourOffId, Colour(COLOR_AUDIO));
-    useMonitor.setBounds(col,row+35,80,25);
-    useMonitor.onClick = [this]() {
-        MessageManager::callAsync([this] {
-            audioProcessor.useMonitor = !audioProcessor.useMonitor;
-            if (audioProcessor.useMonitor) {
-                audioProcessor.cutenvMonitor = false;
-                audioProcessor.resenvMonitor = false;
-            }
-            toggleUIComponents();
-        });
-    };
+    audioWidget = std::make_unique<AudioWidget>(p);
+    addAndMakeVisible(*audioWidget);
+    audioWidget->setBounds(PLUG_PADDING, row, PLUG_WIDTH - PLUG_PADDING * 2, 65 + 10);
 
     // ENVELOPE WIDGETS
     auto b = Rectangle<int>(PLUG_PADDING + 75 * 2, row, PLUG_WIDTH - (PLUG_PADDING + 75 * 2) + 10, 65);
@@ -732,27 +668,13 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     filterModeMenu.setVisible(!isPhaser);
 
     // layout knobs
-    cutoff->setVisible(!showAudioKnobs);
-    res->setVisible(!showAudioKnobs);
-    drive->setVisible(!showAudioKnobs && !isPhaser);
-    morph->setVisible(!showAudioKnobs && isPhaser);
-    rate->setVisible(!showAudioKnobs);
-    offset->setVisible(!showAudioKnobs);
-    smooth->setVisible(!showAudioKnobs);
-    attack->setVisible(!showAudioKnobs);
-    release->setVisible(!showAudioKnobs);
-    tension->setVisible(!showAudioKnobs && !audioProcessor.dualTension);
-    tensionatk->setVisible(!showAudioKnobs && audioProcessor.dualTension);
-    tensionrel->setVisible(!showAudioKnobs && audioProcessor.dualTension);
-
-    threshold->setVisible(showAudioKnobs);
-    sense->setVisible(showAudioKnobs);
-    lowcut->setVisible(showAudioKnobs);
-    highcut->setVisible(showAudioKnobs);
-    offset->setVisible(showAudioKnobs);
-    audioDisplay->setVisible(showAudioKnobs);
-
-    if (!showAudioKnobs) {
+    drive->setVisible(!isPhaser);
+    morph->setVisible(isPhaser);
+    tension->setVisible(!audioProcessor.dualTension);
+    tensionatk->setVisible(audioProcessor.dualTension);
+    tensionrel->setVisible(audioProcessor.dualTension);
+    
+    {
         auto col = drive->getBounds().getX();
         auto row = drive->getBounds().getY();
         col += 75;
@@ -784,10 +706,8 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
             col += 75;
     }
 
-    useSidechain.setVisible(showAudioKnobs);
-    useMonitor.setVisible(showAudioKnobs);
-    useSidechain.setToggleState(audioProcessor.useSidechain, dontSendNotification);
-    useMonitor.setToggleState(audioProcessor.useMonitor, dontSendNotification);
+    audioWidget->setVisible(showAudioKnobs);
+    audioWidget->toggleUIComponents();
 
     latencyWarning.setVisible(audioProcessor.showLatencyWarning);
 
@@ -1079,13 +999,7 @@ void FILTRAudioProcessorEditor::resized()
     mixDial->setBounds(mixDial->getBounds().withRightX(settingsButton->getBounds().getX() - 10));
     meter->setBounds(meter->getBounds().withRightX(mixDial->getBounds().getX() - 10));
 
-    // knobs row
-    bounds = audioDisplay->getBounds();
-    audioDisplay->setBounds(bounds.withRight(col - useSidechain.getBounds().getWidth() - 10));
-    bounds = useSidechain.getBounds();
-    useSidechain.setBounds(bounds.withX(col - bounds.getWidth()));
-    bounds = useMonitor.getBounds();
-    useMonitor.setBounds(bounds.withX(col - bounds.getWidth()));
+    audioWidget->setBounds(audioWidget->getBounds().withWidth(getWidth() - PLUG_PADDING * 2));
 
     resenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
     cutenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));

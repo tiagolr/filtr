@@ -57,72 +57,23 @@ source_group(Source
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Presets.h
 )
 
-source_group(Source\\ui
-    FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Rotary.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Rotary.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/CustomLookAndFeel.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/CustomLookAndFeel.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/GridSelector.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/GridSelector.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/MultiSelect.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/MultiSelect.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/View.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/View.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/src/ui/About.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/About.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SettingsButton.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SettingsButton.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/AudioDisplay.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/AudioDisplay.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/PaintTool.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/PaintTool.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/PaintToolWidget.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/PaintToolWidget.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/TextDial.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/TextDial.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Sequencer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Sequencer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SequencerWidget.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SequencerWidget.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Meter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Meter.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/EnvelopeWidget.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/EnvelopeWidget.cpp
+file(GLOB UI_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.cpp
 )
+source_group(Source\\ui FILES ${UI_SOURCES})
 
-source_group(Source\\dsp
-    FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Utils.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Pattern.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Pattern.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Filter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Filter.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Transient.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Transient.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Follower.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/Follower.cpp
+file(GLOB DSP_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/*.cpp
 )
+source_group(Source\\dsp FILES ${DSP_SOURCES})
 
-source_group(Source\\dsp\\filter
-    FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Filter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/OnePole.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Analog.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Analog.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/RBJ.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/RBJ.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Linear.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Linear.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Moog.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Moog.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/MS20.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/MS20.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/TB303.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/TB303.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Phaser.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/Phaser.cpp
+file(GLOB FILTER_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/filter/*.cpp
 )
+source_group(Source\\dsp\\filter FILES ${FILTER_SOURCES})
 
 # Make the SourceFiles buildable
 target_sources(${PROJECT_NAME} PRIVATE ${src})
