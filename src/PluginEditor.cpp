@@ -600,6 +600,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
             }
             else {
                 audioProcessor.viewPattern->redo();
+                audioProcessor.updateResFromPattern();
+                audioProcessor.updateCutoffFromPattern();
             }
             repaint();
         });
@@ -618,6 +620,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
             }
             else {
                 audioProcessor.viewPattern->undo();
+                audioProcessor.updateResFromPattern();
+                audioProcessor.updateCutoffFromPattern();
             }
             repaint();
         });

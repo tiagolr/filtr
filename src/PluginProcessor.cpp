@@ -226,6 +226,8 @@ void FILTRAudioProcessor::createUndoPoint(int patindex)
             paintPatterns[patindex - PAINT_PATS_IDX]->createUndo();
         }
     }
+    updateResFromPattern();
+    updateCutoffFromPattern();
     sendChangeMessage(); // UI repaint
 }
 
@@ -241,6 +243,8 @@ void FILTRAudioProcessor::createUndoPointFromSnapshot(std::vector<PPoint> snapsh
         viewPattern->points = snapshot;
         createUndoPoint();
         viewPattern->points = points;
+        updateResFromPattern();
+        updateCutoffFromPattern();
     }
 }
 
@@ -1417,7 +1421,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 if (cutenvon)
                     coffset += res[0] * cutenvamt;
                 if (resenvon)
-                    roffset += res[0] * resenvamt;
+                    roffset += res[1] * resenvamt;
             }
 
             double newypos = getY(xpos, min, max, coffset);

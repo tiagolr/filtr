@@ -685,8 +685,6 @@ void View::mouseDoubleClick(const juce::MouseEvent& e)
         insertNewPoint(e);
     }
 
-    audioProcessor.updateCutoffFromPattern();
-    audioProcessor.updateResFromPattern();
     audioProcessor.createUndoPointFromSnapshot(snapshot);
     audioProcessor.viewPattern->buildSegments();
 }
@@ -724,11 +722,8 @@ void View::insertNewPoint(const MouseEvent& e)
     if (px >= 0 && px <= 1 && py >= 0 && py <= 1) { // point in env window
         audioProcessor.viewPattern->insertPoint(px, py, 0, audioProcessor.pointMode);
         audioProcessor.viewPattern->sortPointsSafe(); // keep things consistent, avoids reorders later
-        audioProcessor.updateResFromPattern();
-        audioProcessor.updateCutoffFromPattern();
         audioProcessor.viewPattern->buildSegments();
     }
-    audioProcessor.viewPattern->buildSegments();
 }
 
 bool View::keyPressed(const juce::KeyPress& key)
