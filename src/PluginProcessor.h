@@ -280,12 +280,10 @@ public:
     void onPlay ();
     void onStop ();
     void restartEnv (bool fromZero = false);
-    void setSmooth();
-    void clearDrawBuffers();
+    void onSmoothChange();
+    void clearWaveBuffers();
     void clearLatencyBuffers();
-    void toggleUseSidechain();
-    void toggleMonitorSidechain();
-    double getY(double x, double min, double max, double offset);
+    double getYcut(double x, double min, double max, double offset);
     double getYres(double x, double min, double max, double offset);
     void queuePattern(int patidx);
     void queueResPattern(int patidx);
