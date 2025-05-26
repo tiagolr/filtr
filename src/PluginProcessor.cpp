@@ -97,7 +97,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         patterns[i]->buildSegments();
 
         respatterns[i] = new Pattern(i+12);
-        respatterns[i]->insertPoint(0.0, 0.5, 0, 1);
+        respatterns[i]->insertPoint(0.0, 1.0, 0, 1);
         respatterns[i]->buildSegments();
     }
 
@@ -1341,6 +1341,14 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                         auto patidx = msg.note % 12;
                         queuePattern(patidx + 1);
                     }
+                    else if (msg.channel == triggerResChn || triggerResChn == 16) {
+                        auto patidx = msg.note % 12;
+                        bool linkpats = (bool)params.getRawParameterValue("linkpats")->load();
+                        if (linkpats)
+                            queuePattern(patidx + 1);
+                        else
+                            queueResPattern(patidx + 1);
+                    }
                     else if (trigger == Trigger::MIDI) {
                         clearWaveBuffers();
                         midiTrigger = !alwaysPlaying;
@@ -1623,6 +1631,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("dualSmooth",dualSmooth, nullptr);
     state.setProperty("dualTension",dualTension, nullptr);
     state.setProperty("triggerChn",triggerChn, nullptr);
+    state.setProperty("triggerResChn",triggerResChn, nullptr);
     state.setProperty("useSidechain",useSidechain, nullptr);
     state.setProperty("outputCC", outputCC, nullptr);
     state.setProperty("outputCCChan", outputCCChan, nullptr);
@@ -1693,6 +1702,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         dualSmooth = (bool)state.getProperty("dualSmooth");
         dualTension = (bool)state.getProperty("dualTension");
         triggerChn = (int)state.getProperty("triggerChn");
+        triggerResChn = (int)state.getProperty("triggerResChn");
         useSidechain = (bool)state.getProperty("useSidechain");
         outputCC = (int)state.getProperty("outputCC");
         outputCCChan = (int)state.getProperty("outputCCChan");
