@@ -737,6 +737,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     drive->setVisible(!showAudioKnobs && !isPhaser);
     morph->setVisible(!showAudioKnobs && isPhaser);
     rate->setVisible(!showAudioKnobs);
+    offset->setVisible(!showAudioKnobs);
     smooth->setVisible(!showAudioKnobs);
     attack->setVisible(!showAudioKnobs);
     release->setVisible(!showAudioKnobs);
