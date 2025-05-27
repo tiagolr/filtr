@@ -56,15 +56,6 @@ void Sequencer::draw(Graphics& g)
             auto& button = buttons[i];
             auto l = button.expanded(-button.getWidth()/4,0).toFloat();
             g.drawLine(l.getX(), l.getCentreY(), l.getRight(), l.getCentreY(), 2.f);
-
-            if (cell.shape == SLink) {
-                auto r = 5.f;
-                Path p;
-                p.startNewSubPath(l.getRight() - r, l.getCentreY() - r);
-                p.lineTo(l.getRight(), l.getCentreY());
-                p.lineTo(l.getRight()-r, l.getCentreY()+r);
-                g.strokePath(p, PathStrokeType(2.0f));
-            }
         }
     }
 
@@ -145,14 +136,10 @@ void Sequencer::mouseDrag(const MouseEvent& e)
             if (button.contains(e.getPosition())) {
                 hoverButton = i;
                 auto& cell = cells[i];
-                if (cell.shape != SSilence && cell.shape != SLink) {
+                if (cell.shape != SSilence) {
                     cell.lshape = cell.shape;
                 }
-                cell.shape = startHoverShape == SSilence 
-                    ? SSilence 
-                    : startHoverShape == SLink 
-                    ? SLink
-                    : cell.lshape;
+                cell.shape = startHoverShape == SSilence ? SSilence : cell.lshape;
                 build();
             }
         }
@@ -169,15 +156,10 @@ void Sequencer::mouseDown(const MouseEvent& e)
     // process mouse down on seg buttons
     if (hoverButton > -1) {
         auto& cell = cells[hoverButton];
-        if (cell.shape != SSilence && cell.shape != SLink) {
+        if (cell.shape != SSilence) {
             cell.lshape = cell.shape;
         }
-        cell.shape = cell.shape == SSilence 
-            ? cell.lshape 
-            : cell.shape == SLink 
-            ? SSilence 
-            : SLink;
-
+        cell.shape = cell.shape == SSilence ? cell.lshape : SSilence;
         startHoverShape = cell.shape;
         build();
     }
@@ -396,81 +378,10 @@ void Sequencer::build()
     }
 
     pat->points = removeCollinearPoints(pat->points);
-    processLinkCells(pat->points, (int)grid);
     auto currpat = getCurrentPattern();
     currpat->points = pat->points;
     currpat->sortPoints();
     currpat->buildSegments();
-}
-
-/**
-* Links insert no points between two segments
-* However the tension of the segment before links must be set to the first link tension
-* Also for shapes like triangles and ramps, some points must be removed 
-*/
-void Sequencer::processLinkCells(std::vector<PPoint>& pts, int nCells)
-{
-    if (pts.size() < 2) return;
-    auto gridx = 1.0 / nCells;
-
-    auto getCellPoints = [&pts, gridx](int cellidx) {
-        double minx = cellidx * gridx;
-        double maxx = minx + gridx;
-        std::vector<PPoint*> result;
-        for (auto& p : pts) {
-            if (p.x >= minx && p.x <= maxx) {
-                result.push_back(&p);
-            }
-        }
-        return result;
-    };
-
-    auto getPointIndex = [&pts](PPoint* pt) {
-        for (int i = 0; i < pts.size(); ++i) {
-            if (&pts[i] == pt) {
-                return i;
-            }
-        }
-        return -1;
-    };
-
-    for (int i = 0; i < nCells; ++i) {
-        auto prevIdx = (((i - 1) % nCells) + nCells) % nCells; // rotate index left
-        const auto& cell = cells[i];
-        const auto& prev = cells[prevIdx];
-        if (cell.shape == SLink && prev.shape != SLink) {
-
-            // if prev is a ramp up or an inverted ramp dn remove last pt in that segment
-            if (prev.shape == STri || ((prev.shape == SRampUp || prev.shape == SRampDn) && prev.invertx)) {
-                auto prevpts = getCellPoints(prevIdx);
-                auto& prevpt = prevpts.back();
-                auto idx = getPointIndex(prevpt);
-                pts.erase(pts.begin() + idx);
-            }
-
-            int nextIdx = (i + 1) % nCells;
-            while (nextIdx != i && cells[nextIdx].shape == SLink) {
-                nextIdx = (nextIdx + 1) % nCells;
-            }
-            auto& next = cells[nextIdx];
-
-            if (next.shape == STri || ((next.shape == SRampDn || next.shape == SRampUp) && !next.invertx)) {
-                auto nextpts = getCellPoints(nextIdx);
-                auto& nextpt = nextpts.front();
-                auto idx = getPointIndex(nextpt);
-                pts.erase(pts.begin() + idx);
-            }
-
-            // set tension of last point before link begins
-            auto prevpts = getCellPoints(prevIdx);
-            if (prevpts.size() > 0) {
-                auto& prevpt = prevpts.back();
-                auto& nextpt = pts[(getPointIndex(prevpt) + 1) % (int)pts.size()];
-                auto isAttack = prevpt->y > nextpt.y;
-                prevpt->tension = isAttack ? cell.tenatt : cell.tenrel * -1;
-            }
-        }
-    }
 }
 
 /*
@@ -503,7 +414,6 @@ std::vector<PPoint> Sequencer::buildSeg(double minx, double maxx, Cell cell)
         : cell.shape == SRampDn ? ramp
         : cell.shape == STri ? tri
         : cell.shape == SLine ? line
-        : cell.shape == SLink ? std::vector<PPoint>{}
         : cell.shape == SPTool ? audioProcessor.getPaintPatern(cell.ptool)->points
         : silence;
 

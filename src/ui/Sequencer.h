@@ -16,7 +16,6 @@ enum CellShape {
     STri,
     SLine,
     SPTool,
-    SLink,
 };
 
 enum SeqEditMode {
@@ -105,7 +104,6 @@ private:
     FILTRAudioProcessor& audioProcessor;
 
     bool isSnapping(const MouseEvent& e);
-    void processLinkCells(std::vector<PPoint>& pts, int grid);
     std::vector<PPoint> removeCollinearPoints(std::vector<PPoint>& pts);
     bool compareCells(const std::vector<Cell>& a, const std::vector<Cell>& b);
 };
