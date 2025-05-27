@@ -29,7 +29,9 @@ void Sequencer::setViewBounds(int _x, int _y, int _w, int _h)
 void Sequencer::drawBackground(Graphics& g)
 {
     double x = (lmousepos.x - winx) / (double)winw;
+    double y = (lmousepos.y - winy) / (double)winh;
     x = jlimit(0.0, 1.0 - 1e-8, x);
+    y = jlimit(0.0, 1.0, y);
 
     int grid = audioProcessor.getCurrentGrid();
     double gridx = winw / (double)grid;
@@ -37,12 +39,27 @@ void Sequencer::drawBackground(Graphics& g)
 
     g.setColour(Colours::white.withAlpha(0.1f));
     g.fillRect((int)std::round(seg * gridx) + winx, winy, (int)std::round(gridx), winh);
+
+    if (editMode == EditMax || editMode == EditMin) {
+        double x1 = int(x / (1.0/grid)) * (1.0/grid);
+        double x2 = x1 + 1.0/grid;
+        auto idx = getCellIndex(x1, x2);
+        if (idx > -1) {
+            auto& cell = cells[idx];
+            g.setColour(Colour(COLOR_ACTIVE));
+            double xx1 = winx + winw * std::clamp(cell.minx, 0.0, 1.0);
+            double xx2 = winx + winw * std::clamp(cell.maxx, 0.0, 1.0);
+            double yy = winy + winh * cell.maxy;
+            double yy2 = winy + winh * cell.miny;
+            g.drawLine((float)xx1, (float)yy+0.5f, (float)xx2, (float)yy+0.5f);
+            g.drawLine((float)xx1, (float)yy2+0.5f, (float)xx2, (float)yy2+0.5f);
+        }
+    }
 }
 
 void Sequencer::draw(Graphics& g)
 {
-    g.setColour(Colours::white);
-
+    // draw hovered cell min and max lines
     if (editMode == EditMax || editMode == EditMin)
         return;
 
@@ -110,6 +127,8 @@ void Sequencer::mouseDown(const MouseEvent& e)
 void Sequencer::mouseUp(const MouseEvent& e)
 {   
     (void)e;
+    if (editMode == EditMin) 
+        editMode = EditMax;
     createUndo(snapshot);
 }
 
@@ -135,7 +154,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         y = std::round(y * snapy) / snapy;
     }
 
-    bool canAddCell = editMode == EditMax && selectedShape != SNone;
+    bool canAddCell = (editMode == EditMax || editMode == EditMin) && selectedShape != SNone;
     auto segCells = getCellsInRange(x1, x2);
     
     if (e.mods.isRightButtonDown()) {
@@ -152,10 +171,13 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         return;
     }
 
+    bool isNewCell = false;
     if (canAddCell) {
         clearSegment(x1, x2, false);
-        if (getCellIndex(x1,x2) == -1)
+        if (getCellIndex(x1, x2) == -1) {
             addCell(x1, x2);
+            isNewCell = true;
+        }
         segCells = getCellsInRange(x1, x2);
     }
 
@@ -180,8 +202,20 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
             cell->lshape = selectedShape;
         }
     }
+
+    // toggle editMin if the edit point is closer to min than max
+    if (editMode == EditMax && !isDrag && selectedShape != SLine && !isNewCell) {
+        auto dymin = std::abs(y - segCells[0]->maxy);
+        auto dymax = std::abs(y - segCells[0]->miny);
+        if (dymin < dymax) {
+            editMode = EditMin;
+        }
+    }
     
     for (auto cell : segCells) {
+        if (cell->shape == SLine) {
+            cell->maxy = 1.0;
+        }
         if (editMode == EditMin) {
             cell->maxy = y; // y coordinates are inverted
             if (cell->miny > y)

@@ -37,13 +37,12 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 
 	int col = 0;int row = 0;
 	addButton(flipXBtn, "FlipX", col, row, EditInvertX);col += 70;
-	addButton(minBtn, "Min", col, row, EditMin);col += 70;
-	addButton(maxBtn, "Max", col, row, EditMax);col = 0;row = 35;
-	addButton(skewBtn, "Skew", col, row, EditSkew);col += 70;col += 70;
+	addButton(maxBtn, "Paint", col, row, EditMax);col = 0;row = 35;
+	addButton(skewBtn, "Skew", col, row, EditSkew);col += 70;
 	addButton(tenBtn, "Ten", col, row, EditTension);col += 70;
 
 	row = 0;
-	col = 0; // layout during resized()
+	col = maxBtn.getBounds().getRight() + 20;
 	addToolButton(silenceBtn, col, row, 25, 25, CellShape::SSilence); col += 25;
 	addToolButton(lineBtn, col, row, 25, 25, CellShape::SLine); col += 25;
 	addToolButton(rampdnBtn, col, row, 25, 25, CellShape::SRampDn); col += 25;
@@ -152,15 +151,6 @@ void SequencerWidget::resized()
 	resetBtn.setBounds(col-60,row,60,25);
 	col -= 70;
 	applyBtn.setBounds(col-60,row,60,25);
-
-	row = 0;
-	col = getLocalBounds().getCentreX() - 25*7/2;
-	silenceBtn.setBounds(col, row, 25, 25); col+= 25;
-	lineBtn.setBounds(col, row, 25, 25); col+= 25;
-	rampdnBtn.setBounds(col, row, 25, 25); col+= 25;
-	rampupBtn.setBounds(col, row, 25, 25); col+= 25;
-	triBtn.setBounds(col, row, 25, 25); col+= 25;
-	ptoolBtn.setBounds(col, row, 25, 25); col+= 25;
 
 	auto bounds = clearBtn.getBounds();
 	clearBtn.setBounds(bounds.withRightX(getWidth()));
