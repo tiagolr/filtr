@@ -65,6 +65,7 @@ void Sequencer::draw(Graphics& g)
         double value = editMode == EditTenAtt ? (cell.invertx ? cell.tenrel : cell.tenatt) * -1
             : editMode == EditTenRel ? (cell.invertx ? cell.tenatt : cell.tenrel) * -1
             : editMode == EditTension ? (std::fabs(cell.tenatt) > std::fabs(cell.tenrel) ? cell.tenatt : cell.tenrel) * -1
+            : editMode == EditSkew ? cell.skew * -1
             : 0.0;
 
         auto bounds = Rectangle<float>((float)winx+(float)cell.minx*winw, (float)winy + winh / 2.f, (float)(cell.maxx - cell.minx) * winw, winh / 2.f * std::fabs((float)value));
@@ -85,6 +86,7 @@ Colour Sequencer::getEditModeColour(SeqEditMode mode)
     if (mode == EditTension) return Colour(COLOR_SEQ_TEN);
     if (mode == EditTenAtt) return Colour(COLOR_SEQ_TENA);
     if (mode == EditTenRel) return Colour(COLOR_SEQ_TENR);
+    if (mode == EditSkew) return Colour(COLOR_SEQ_SKEW);
     return Colours::white;
 }
 
@@ -152,7 +154,8 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
 
     if (canAddCell) {
         clearSegment(x1, x2, false);
-        addCell(x1, x2);
+        if (getCellIndex(x1,x2) == -1)
+            addCell(x1, x2);
         segCells = getCellsInRange(x1, x2);
     }
 
@@ -209,7 +212,10 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
                 cell->tenatt = y * 2 - 1;
             else
                 cell->tenrel = y * 2 - 1;
-        } 
+        }
+        else if (editMode == EditSkew) {
+            cell->skew = y * 2 - 1;
+        }
     }
 
     build();
@@ -232,7 +238,7 @@ int Sequencer::addCell(double minx, double maxx)
         return cell.minx < maxx && cell.maxx > minx;
     }), cells.end());
 
-    Cell cell = { selectedShape, selectedShape, audioProcessor.paintTool, false, minx, maxx, 0.0, 1.0, 0.0, 0.0 };
+    Cell cell = { selectedShape, selectedShape, audioProcessor.paintTool, false, minx, maxx, 0.0, 1.0, 0.0, 0.0, 0.0 };
 
     auto it = std::lower_bound(cells.begin(), cells.end(), cell.minx,
         [](const Cell& cell, double x) {
@@ -265,7 +271,7 @@ std::vector<Cell*> Sequencer::getCellsInRange(double minx, double maxx) {
 void Sequencer::clearSegment(double minx, double maxx, bool removeAll)
 {
     cells.erase(std::remove_if(cells.begin(), cells.end(), [minx, maxx, removeAll](const Cell& cell) {
-        double eps = 1e-12;
+        double eps = 1e-10;
         bool exactMatch = std::abs(cell.minx - minx) < eps && std::abs(cell.maxx - maxx) < eps;
         bool overlaps = cell.minx < maxx - eps && cell.maxx > minx + eps;
         return overlaps && (!exactMatch || removeAll);
@@ -404,11 +410,18 @@ std::vector<PPoint> Sequencer::buildSeg(Cell cell)
 
     tmp->points = paint;
     const auto size = (int)tmp->points.size();
+    auto skew = cell.skew * -1;
     for (int i = 0; i < size; ++i) {
         auto& point = tmp->points[i];
         if (cell.tenatt != 0.0 || cell.tenrel != 0.0) {
             auto isAttack = i < size - 2 && point.y > tmp->points[i + 1].y;
             point.tension = isAttack ? cell.tenatt : cell.tenrel * -1;
+        }
+        if (i > 0 && i < size - 1 && skew != 0.0) {
+            if (skew > 0)
+                point.x = point.x + skew * (1 - point.x);
+            else 
+                point.x = point.x + skew * point.x;
         }
     }
     if (cell.invertx) tmp->reverse();

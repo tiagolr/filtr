@@ -22,6 +22,7 @@ namespace globals {
 	inline unsigned int COLOR_SEQ_TEN = 0xff50ff60;
 	inline unsigned int COLOR_SEQ_TENA = 0xffffee50;
 	inline unsigned int COLOR_SEQ_TENR = 0xffffB950;
+	inline unsigned int COLOR_SEQ_SKEW = 0xffffB950;
 
 	inline const int LATENCY_MILLIS = 4;
 	inline const int AUDIO_COOLDOWN_MILLIS = 50;

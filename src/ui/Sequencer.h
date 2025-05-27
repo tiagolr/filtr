@@ -25,7 +25,8 @@ enum SeqEditMode {
     EditTenAtt,
     EditTenRel,
     EditInvertX,
-    EditSilence // used for randomize only
+    EditSkew,
+    EditSilence, // used for randomize only
 };
 
 struct Cell { 
@@ -39,6 +40,7 @@ struct Cell {
     double maxy;
     double tenatt; // attack tension
     double tenrel; // release tension
+    double skew;
 };
 
 class Sequencer {

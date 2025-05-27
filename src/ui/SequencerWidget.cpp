@@ -39,8 +39,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	addButton(flipXBtn, "FlipX", col, row, EditInvertX);col += 70;
 	addButton(minBtn, "Min", col, row, EditMin);col += 70;
 	addButton(maxBtn, "Max", col, row, EditMax);col = 0;row = 35;
-	addButton(tenaBtn, "TAtk", col, row, EditTenAtt);col += 70;
-	addButton(tenrBtn, "TRel", col, row, EditTenRel);col += 70;
+	addButton(skewBtn, "Skew", col, row, EditSkew);col += 70;col += 70;
 	addButton(tenBtn, "Ten", col, row, EditTension);col += 70;
 
 	row = 0;
@@ -180,9 +179,8 @@ void SequencerWidget::updateButtonsState()
 	maxBtn.setToggleState(mode == SeqEditMode::EditMax, dontSendNotification);
 	minBtn.setToggleState(mode == SeqEditMode::EditMin, dontSendNotification);
 	flipXBtn.setToggleState(mode == SeqEditMode::EditInvertX, dontSendNotification);
-	tenaBtn.setToggleState(mode == SeqEditMode::EditTenAtt, dontSendNotification);
-	tenrBtn.setToggleState(mode == SeqEditMode::EditTenRel, dontSendNotification);
 	tenBtn.setToggleState(mode == SeqEditMode::EditTension, dontSendNotification);
+	skewBtn.setToggleState(mode == SeqEditMode::EditSkew, dontSendNotification);
 	randomBtn.setColour(TextButton::buttonColourId, modeColor);
 	randomRange.setColour(Slider::backgroundColourId, Colour(COLOR_BG).brighter(0.1f));
 	randomRange.setColour(Slider::trackColourId, Colour(COLOR_ACTIVE).darker(0.5f));
