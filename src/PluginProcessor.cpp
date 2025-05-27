@@ -417,7 +417,7 @@ void FILTRAudioProcessor::loadProgram (int index)
 
     currentProgram = index;
     auto loadPreset = [](Pattern& pat, int idx) {
-        auto preset = Presets::getPreset(idx);
+        auto preset = Presets::getCutPreset(idx);
         pat.clear();
         for (auto p = preset.begin(); p < preset.end(); ++p) {
             pat.insertPoint(p->x, p->y, p->tension, p->type);

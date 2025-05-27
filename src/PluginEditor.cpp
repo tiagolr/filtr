@@ -42,11 +42,17 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     presetExport.setBounds(10, 10, 100, 25);
     presetExport.onClick = [this] {
         std::ostringstream oss;
-        auto points = audioProcessor.viewPattern->points;
+        auto points = audioProcessor.pattern->points;
         for (const auto& point : points) {
             oss << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
         }
         DBG(oss.str() << "\n");
+        std::ostringstream oss2;
+        points = audioProcessor.respattern->points;
+        for (const auto& point : points) {
+            oss2 << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
+        }
+        DBG(oss2.str() << "\n");
     };
 #endif
 

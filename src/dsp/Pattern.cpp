@@ -29,7 +29,7 @@ void Pattern::incrementVersion()
 void Pattern::sortPoints()
 {
     std::sort(points.begin(), points.end(), [](const PPoint& a, const PPoint& b) { 
-        return a.x == b.x ? a.id < b.id : a.x < b.x; 
+        return a.x < b.x; 
     });
 }
 
