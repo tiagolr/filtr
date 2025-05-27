@@ -1670,6 +1670,8 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
             << cell.lshape << ' '
             << cell.ptool << ' '
             << cell.invertx << ' '
+            << cell.minx << ' '
+            << cell.maxx << ' '
             << cell.miny << ' '
             << cell.maxy << ' '
             << cell.tenatt << ' '
@@ -1763,7 +1765,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
             Cell cell;
             int shape, lshape;
             while (iss >> shape >> lshape >> cell.ptool >> cell.invertx
-                >> cell.miny >> cell.maxy >> cell.tenatt >> cell.tenrel) {
+                >> cell.minx >> cell.maxx >> cell.miny >> cell.maxy >> cell.tenatt >> cell.tenrel) {
                 cell.shape = static_cast<CellShape>(shape);
                 cell.lshape = static_cast<CellShape>(lshape);
                 sequencer->cells.push_back(cell);

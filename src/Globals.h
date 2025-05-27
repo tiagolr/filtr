@@ -53,5 +53,4 @@ namespace globals {
 
 	// sequencer
 	inline const int SEQ_PAT_IDX = 1000;
-	inline const int SEQ_MAX_CELLS = 32;
 };

@@ -33,6 +33,8 @@ struct Cell {
     CellShape lshape; // used to temporarily change type and revert back
     int ptool; // paint tool
     bool invertx;
+    double minx;
+    double maxx;
     double miny;
     double maxy;
     double tenatt; // attack tension
@@ -67,8 +69,11 @@ public:
     void clear();
     void build();
     Pattern* getCurrentPattern();
-    std::vector<PPoint> buildSeg(double minx, double maxx, Cell cell);
+    std::vector<PPoint> buildSeg(Cell cell);
     std::vector<Rectangle<int>> getSegButtons();
+    int getCellIndex(double minx, double maxx);
+    int addCell(double minx, double maxx);
+    void clearSegment(double minx, double maxx);
     void rotateRight();
     void rotateLeft();
 
