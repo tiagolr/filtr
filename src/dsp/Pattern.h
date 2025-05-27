@@ -59,7 +59,7 @@ public:
     Pattern(int index);
     void incrementVersion(); // generates a new unique ID for this pattern
 
-    int insertPoint(double x, double y, double tension, int type);
+    int insertPoint(double x, double y, double tension, int type, bool sort = true);
     int insertPointUnsafe(double x, double y, double tension, int type);
     void sortPoints();
     void sortPointsSafe();

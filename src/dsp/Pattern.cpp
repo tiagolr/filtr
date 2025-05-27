@@ -48,7 +48,7 @@ void Pattern::setTension(double t, double tatk, double trel, bool dual)
     tensionMult.store(t);
 }
 
-int Pattern::insertPoint(double x, double y, double tension, int type)
+int Pattern::insertPoint(double x, double y, double tension, int type, bool sort)
 {
     std::lock_guard<std::mutex> lock(pointsmtx);
     auto id = pointsIDCounter;
@@ -56,7 +56,8 @@ int Pattern::insertPoint(double x, double y, double tension, int type)
 
     const PPoint p = { id, x, y, tension, type };
     points.push_back(p);
-    sortPoints();
+    if (sort)
+        sortPoints();
     clearTransform();
 
     // return point index

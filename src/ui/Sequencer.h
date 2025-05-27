@@ -70,12 +70,13 @@ public:
     void build();
     Pattern* getCurrentPattern();
     std::vector<PPoint> buildSeg(Cell cell);
-    std::vector<Rectangle<int>> getSegButtons();
     int getCellIndex(double minx, double maxx);
+    std::vector<Cell*> getCellsInRange(double minx, double maxx);
     int addCell(double minx, double maxx);
-    void clearSegment(double minx, double maxx);
+    void clearSegment(double minx, double maxx, bool removeAll);
     void rotateRight();
     void rotateLeft();
+    void sortCells();
 
     void randomize(SeqEditMode mode, double min, double max);
     void clear(SeqEditMode mode);
@@ -88,8 +89,6 @@ public:
     void redo();
 
 private:
-    int hoverButton = -1;
-    CellShape hoverButtonType = CellShape::SSilence; // used for dragging multiple buttons assigning the same type
     CellShape startHoverShape = CellShape::SLine; // used for dragging multiple buttons with the same type
     bool startInvertX = false; // used to drag toggle all segments to the same invertx
     Point<int> lmousepos;
