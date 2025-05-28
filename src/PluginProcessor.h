@@ -130,6 +130,7 @@ public:
     int paintTool = 0; // index of pattern used for paint mode
     int paintPage = 0;
     int pointMode = 1; // Hold, Curve, S-curve, Pulse, Wave etc..
+    int linkSeqToGrid = true; // sequencer step linked to grid size
 
     // State
     Pattern* pattern; // current pattern used for audio processing
@@ -248,6 +249,7 @@ public:
     void saveSettings();
     void setScale(float value);
     int getCurrentGrid();
+    int getCurrentSeqStep();
     void createUndoPoint(int patindex = -1);
     void createUndoPointFromSnapshot(std::vector<PPoint> snapshot);
     void setUIMode(UIMode mode);

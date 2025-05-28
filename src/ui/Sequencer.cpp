@@ -37,23 +37,31 @@ void Sequencer::drawBackground(Graphics& g)
     int grid = audioProcessor.getCurrentGrid();
     double gridx = winw / (double)grid;
     int seg = (int)(x * grid);
+    int step = audioProcessor.getCurrentSeqStep();
+    int segw = winw / step;
 
     g.setColour(Colours::white.withAlpha(0.1f));
-    g.fillRect((int)std::round(seg * gridx) + winx, winy, (int)std::round(gridx), winh);
+    auto bounds = Rectangle<int>((int)std::round(seg * gridx) + winx, winy, segw, winh);
+    if (bounds.getRight() > winx + winw)
+        bounds = bounds.withRight(winx + winw);
+    g.fillRect(bounds);
 
     if (editMode == EditMax || editMode == EditMin) {
-        double x1 = int(x / (1.0/grid)) * (1.0/grid);
-        double x2 = x1 + 1.0/grid;
-        auto idx = getCellIndex(x1, x2);
-        if (idx > -1) {
-            auto& cell = cells[idx];
-            g.setColour(Colour(COLOR_MIDI));
-            double xx1 = winx + winw * std::clamp(cell.minx, 0.0, 1.0);
-            double xx2 = winx + winw * std::clamp(cell.maxx, 0.0, 1.0);
-            double yy = winy + winh * cell.maxy;
-            double yy2 = winy + winh * cell.miny;
-            g.drawLine((float)xx1, (float)yy+0.5f, (float)xx2, (float)yy+0.5f);
-            g.drawLine((float)xx1, (float)yy2+0.5f, (float)xx2, (float)yy2+0.5f);
+        auto segBounds = getSegBounds(seg).toNearestInt();
+        g.setColour(Colour(COLOR_MIDI));
+        double xx1 = segBounds.getX();
+        double xx2 = segBounds.getRight();
+        double yy = segBounds.getY();
+        double yy2 = segBounds.getBottom();
+        g.drawLine((float)xx1, (float)yy+0.5f, (float)xx2, (float)yy+0.5f);
+        g.drawLine((float)xx1, (float)yy2+0.5f, (float)xx2, (float)yy2+0.5f);
+        auto dymin = std::abs(lmousepos.y - segBounds.getY());
+        auto dymax = std::abs(lmousepos.y - segBounds.getBottom());
+        if (dymin < dymax) {
+            g.fillRect((float)xx1, (float)yy-1, (float)(xx2-xx1), 3.f);
+        }
+        else {
+            g.fillRect((float)xx1, (float)yy2-1, (float)(xx2-xx1), 3.f);
         }
     }
 }
@@ -147,16 +155,28 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
     y = jlimit(0.0, 1.0, y);
 
     int grid = audioProcessor.getCurrentGrid();
+    int step = audioProcessor.getCurrentSeqStep();
+    int seg = (int)(x * grid);
     double x1 = int(x / (1.0/grid)) * (1.0/grid);
-    double x2 = x1 + 1.0/grid;
+    double x2 = x1 + 1.0/step;
 
     if (isSnapping(e)) {
         auto snapy = grid % 6 == 0 ? 12.0 : 16.0;
         y = std::round(y * snapy) / snapy;
     }
 
-    bool canAddCell = (editMode == EditMax) && selectedShape != SNone;
+    bool canAddCell = (editMode == EditMax || editMode == EditMin) && selectedShape != SNone;
     auto segCells = getCellsInRange(x1, x2);
+    auto segBounds = getSegBounds(seg);
+
+    // toggle editMin if the edit point is closer to min than max
+    if (editMode == EditMax && !isDrag && selectedShape != SLine && selectedShape != SLPoint) {
+        auto dymax = std::abs(e.getPosition().y - segBounds.getY()); ////
+        auto dymin = std::abs(e.getPosition().y - segBounds.getBottom());
+        if (dymin < dymax) {
+            editMode = EditMin;
+        }
+    }
 
     if (e.mods.isRightButtonDown()) {
         for (auto cell : segCells) {
@@ -181,6 +201,10 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
             isNewCell = true;
         }
         segCells = getCellsInRange(x1, x2);
+        if (isNewCell) {
+            segCells[0]->miny = (segBounds.getY() - winy) / (double)winh; //////
+            segCells[0]->maxy = (segBounds.getBottom() - winy) / (double)winh;
+        }
     }
 
     if (segCells.empty())
@@ -208,19 +232,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         }
     }
 
-    // toggle editMin if the edit point is closer to min than max
-    if (editMode == EditMax && !isDrag && selectedShape != SLine && !isNewCell && selectedShape != SLPoint) {
-        auto dymin = std::abs(y - segCells[0]->maxy);
-        auto dymax = std::abs(y - segCells[0]->miny);
-        if (dymin < dymax) {
-            editMode = EditMin;
-        }
-    }
-
     for (auto cell : segCells) {
-        if (cell->shape == SLine || cell->shape == SLPoint) {
-            cell->maxy = 1.0;
-        }
         if (editMode == EditMin) {
             cell->maxy = y; // y coordinates are inverted
             if (cell->miny > y)
@@ -255,6 +267,9 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         else if (editMode == EditSkew) {
             cell->skew = y * 2 - 1;
         }
+        if (cell->shape == SLine || cell->shape == SLPoint) {
+            cell->maxy = std::min(cell->miny + 1e-10, 1.0);
+        }
     }
 
     build();
@@ -270,6 +285,28 @@ int Sequencer::getCellIndex(double minx, double maxx)
     }
 
     return -1;
+}
+
+////
+Rectangle<double> Sequencer::getSegBounds(int segidx)
+{
+    int grid = audioProcessor.getCurrentGrid();
+    int step = audioProcessor.getCurrentSeqStep();
+    int segw = winw / step;
+
+    double minx = (double)segidx/(grid);
+    double maxx = std::min((double)segidx/grid + 1.0/step, 1.0);
+    double miny = 0.0;
+    double maxy = 1.0;
+
+    for (auto& pt : pat->points) {
+        if (pt.x >= minx && pt.x <= maxx) {
+            if (pt.y <= maxy) maxy = pt.y;
+            if (pt.y >= miny) miny = pt.y;
+        }
+    }
+
+    return Rectangle<double>(minx * winw + winx, std::min(maxy, miny) * winh + winy, (double)segw, std::fabs(miny - maxy) * winh); 
 }
 
 int Sequencer::addCell(double minx, double maxx)
@@ -297,28 +334,16 @@ int Sequencer::addCell(double minx, double maxx)
 */
 std::vector<Cell*> Sequencer::getCellsInRange(double minx, double maxx) {
     std::vector<Cell*> result;
+    auto eps = 1e-10;
 
     for (auto& cell : cells) {
-        if (cell.minx >= minx && cell.minx < maxx) {
+        if (cell.minx + eps >= minx && cell.maxx - eps <= maxx) {
             result.push_back(&cell);
         }
     }
 
     return result;
 }
-
-/*
-bool exactMatch = std::abs(cell.minx - minx) < eps && std::abs(cell.maxx - maxx) < eps;
-bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
-// move overlapping cell to the left
-if (!exactMatch && !contains && cell.minx + eps < minx && cell.maxx - eps > minx) {
-    cell.maxx = minx;
-}
-// move overlapping cell to the right
-if (!exactMatch && !contains && cell.minx + eps < maxx && cell.maxx - eps > maxx) {
-    cell.minx = maxx;
-}
-*/
 
 /*
 * clears a segment so new cells can be added
@@ -345,11 +370,7 @@ void Sequencer::clearSegment(double minx, double maxx, bool removeAll)
         bool overlaps = cell.minx < maxx - eps && cell.maxx > minx + eps;
         bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
         //bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
-        bool ok = (overlaps || contains) && (!exactMatch || removeAll);
-        if (ok) {
-            DBG("M");
-        }
-        return ok;
+        return (overlaps || contains) && (!exactMatch || removeAll);
     }), cells.end());
 }
 

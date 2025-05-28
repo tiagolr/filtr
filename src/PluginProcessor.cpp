@@ -39,6 +39,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterFloat>("tensionrel", "Release Tension", -1.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterBool>("snap", "Snap", false),
         std::make_unique<juce::AudioParameterInt>("grid", "Grid", 0, (int)std::size(GRID_SIZES)-1, 2),
+        std::make_unique<juce::AudioParameterInt>("seqstep", "Sequencer Step", 0, (int)std::size(GRID_SIZES)-1, 2),
         std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", juce::NormalisableRange<float> (0.0f, 10.0f, 0.001f, 0.5f), 1.0f),
         // filter params
         std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-" }, 0),
@@ -207,6 +208,12 @@ void FILTRAudioProcessor::setScale(float s)
 int FILTRAudioProcessor::getCurrentGrid()
 {
     auto gridIndex = (int)params.getRawParameterValue("grid")->load();
+    return GRID_SIZES[gridIndex];
+}
+
+int FILTRAudioProcessor::getCurrentSeqStep()
+{
+    auto gridIndex = (int)params.getRawParameterValue("seqstep")->load();
     return GRID_SIZES[gridIndex];
 }
 
@@ -1646,6 +1653,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("cutenvAutoRel", cutenvAutoRel, nullptr);
     state.setProperty("resenvSidechain", resenvSidechain, nullptr);
     state.setProperty("resenvAutoRel", resenvAutoRel, nullptr);
+    state.setProperty("linkSeqToGrid", linkSeqToGrid, nullptr);
 
     for (int i = 0; i < 12; ++i) {
         std::ostringstream oss;
@@ -1720,6 +1728,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         cutenvAutoRel = (bool)state.getProperty("cutenvAutoRel");
         resenvSidechain = (bool)state.getProperty("resenvSidechain");
         resenvAutoRel = (bool)state.getProperty("resenvAutoRel");
+        linkSeqToGrid = state.hasProperty("linkSeqToGrid") ? (bool)state.getProperty("linkSeqToGrid") : true;
 
         for (int i = 0; i < 12; ++i) {
             patterns[i]->clear();

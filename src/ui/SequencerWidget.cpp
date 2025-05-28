@@ -105,7 +105,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	clearBtn.setBounds(getRight() - 60, row, 60, 25);
 	clearBtn.onClick = [this]() {
 		audioProcessor.sequencer->clear(audioProcessor.sequencer->editMode);
-		};
+	};
 
 	row = 0;
 	col = getWidth();
@@ -119,7 +119,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		audioProcessor.sequencer->clear();
 		audioProcessor.sequencer->createUndo(snap);
 		audioProcessor.sequencer->build();
-		};
+	};
 
 	col -= 70;
 	addAndMakeVisible(applyBtn);
@@ -129,7 +129,27 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	applyBtn.onClick = [this]() {
 		audioProcessor.sequencer->apply();
 		audioProcessor.toggleSequencerMode();
-		};
+	};
+
+	col -= 70;
+	addAndMakeVisible(linkStepBtn);
+	linkStepBtn.setBounds(col-25,row,25,25);
+	linkStepBtn.setAlpha(0.f);
+	linkStepBtn.onClick = [this] {
+		audioProcessor.linkSeqToGrid = !audioProcessor.linkSeqToGrid;
+		if (audioProcessor.linkSeqToGrid) {
+			MessageManager::callAsync([this] {
+				audioProcessor.params.getParameter("seqstep")
+					->setValueNotifyingHost(audioProcessor.params.getParameter("grid")->getValue());
+			});
+		}
+		updateButtonsState();
+	};
+
+	col -= 60;
+	stepSelector = std::make_unique<GridSelector>(audioProcessor, true);
+	addAndMakeVisible(*stepSelector);
+	stepSelector->setBounds(col, row, 50, 25);
 
 	updateButtonsState();
 }
@@ -141,6 +161,9 @@ void SequencerWidget::resized()
 	resetBtn.setBounds(col-60,row,60,25);
 	col -= 70;
 	applyBtn.setBounds(col-60,row,60,25);
+	col -= 70;
+	stepSelector->setBounds(stepSelector->getBounds().withRightX(applyBtn.getBounds().getX() - 10));
+	linkStepBtn.setBounds(linkStepBtn.getBounds().withRightX(stepSelector->getBounds().getX() - 10));
 
 	auto bounds = clearBtn.getBounds();
 	clearBtn.setBounds(bounds.withRightX(getWidth()));
@@ -272,6 +295,32 @@ void SequencerWidget::paint(Graphics& g)
 	g.fillEllipse(bounds);
 	g.fillEllipse(bounds.translated(0.f,-r*3.f));
 	g.fillEllipse(bounds.translated(0.f,r*3.f));
+
+	bool linkstep = audioProcessor.linkSeqToGrid;
+	g.setColour(Colour(COLOR_ACTIVE));
+	if (linkstep) {
+		g.fillRoundedRectangle(linkStepBtn.getBounds().toFloat(), 3.0f);
+		drawChain(g, linkStepBtn.getBounds(), Colour(COLOR_BG), Colour(COLOR_ACTIVE));
+	}
+	else {
+		drawChain(g, linkStepBtn.getBounds(), Colour(COLOR_ACTIVE), Colour(COLOR_BG));
+	}
+}
+
+void SequencerWidget::drawChain(Graphics& g, Rectangle<int> bounds, Colour color, Colour background)
+{
+	(void)background;
+	float x = bounds.toFloat().getCentreX();
+	float y = bounds.toFloat().getCentreY();
+	float rx = 10.f;
+	float ry = 5.f;
+
+	g.setColour(color);
+	Path p;
+	p.addRoundedRectangle(x-rx, y-ry/2, rx, ry, 2.0f, 2.f);
+	p.addRoundedRectangle(x, y-ry/2, rx, ry, 2.0f, 2.f);
+	p.applyTransform(AffineTransform::rotation(MathConstants<float>::pi / 4.f, x, y));
+	g.strokePath(p, PathStrokeType(2.f));
 }
 
 void SequencerWidget::mouseDown(const juce::MouseEvent& e)
