@@ -78,6 +78,7 @@ public:
     void clearSegment(double minx, double maxx, bool removeAll);
     void rotateRight();
     void rotateLeft();
+    void doublePattern();
     void sortCells();
 
     void randomize(SeqEditMode mode, double min, double max);

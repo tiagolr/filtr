@@ -65,14 +65,15 @@ int Pattern::insertPoint(double x, double y, double tension, int type, bool sort
     return pidx == points.end() ? -1 : (int)std::distance(points.begin(), pidx);
 };
 
-int Pattern::insertPointUnsafe(double x, double y, double tension, int type)
+int Pattern::insertPointUnsafe(double x, double y, double tension, int type, bool sort)
 {
     auto id = pointsIDCounter;
     pointsIDCounter += 1;
 
     const PPoint p = { id, x, y, tension, type };
     points.push_back(p);
-    sortPoints();
+    if (sort)
+        sortPoints();
     clearTransform();
 
     auto pidx = std::find_if(points.begin(), points.end(), [id](const PPoint& p) { return p.id == id; });
@@ -147,6 +148,23 @@ void Pattern::reverse()
     }
     incrementVersion();
 };
+
+void Pattern::doublePattern()
+{
+    std::lock_guard<std::mutex> lock(pointsmtx);
+    clearTransform();
+    
+    auto pts = points;
+    for (auto& p : pts) {
+        insertPointUnsafe(p.x + 1.0, p.y, p.tension, p.type, false);
+    }
+
+    for (auto& p : points) {
+        p.x /= 2.0;
+    }
+
+    incrementVersion();
+}
 
 void Pattern::rotate(double x) {
     std::lock_guard<std::mutex> lock(pointsmtx);

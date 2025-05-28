@@ -60,7 +60,7 @@ public:
     void incrementVersion(); // generates a new unique ID for this pattern
 
     int insertPoint(double x, double y, double tension, int type, bool sort = true);
-    int insertPointUnsafe(double x, double y, double tension, int type);
+    int insertPointUnsafe(double x, double y, double tension, int type, bool sort = true);
     void sortPoints();
     void sortPointsSafe();
     void setTension(double t, double tatk, double trel, bool dual); // sets global tension multiplier
@@ -70,6 +70,7 @@ public:
     void removePointsInRangeAux(double x1, double x2);
     void invert();
     void reverse();
+    void doublePattern();
     void rotate(double x);
     void rotateUnsafe(double x);
     void clear();

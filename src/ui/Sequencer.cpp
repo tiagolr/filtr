@@ -505,6 +505,25 @@ void Sequencer::rotateLeft()
     build();
 }
 
+void Sequencer::doublePattern()
+{
+    snapshot = cells;
+    auto cellsarr = cells;
+    for (auto cell : cellsarr) {
+        cell.minx += 1.0;
+        cell.maxx += 1.0;
+        cells.push_back(cell);
+    }
+
+    for (auto& cell : cells) {
+        cell.minx /= 2.0;
+        cell.maxx /= 2.0;
+    }
+
+    createUndo(snapshot);
+    build();
+}
+
 void Sequencer::sortCells()
 {
     std::sort(cells.begin(), cells.end(), [](const Cell& a, const Cell& b) { 
