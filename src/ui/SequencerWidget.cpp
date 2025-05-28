@@ -16,8 +16,8 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		button.onClick = [this, mode]() {
 			audioProcessor.sequencer->editMode = audioProcessor.sequencer->editMode == mode ? EditMax : mode;
 			updateButtonsState();
+			};
 		};
-	};
 
 	auto addToolButton = [this](TextButton& button, int col, int row, int w, int h, CellShape shape) {
 		addAndMakeVisible(button);
@@ -31,9 +31,9 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 				updateButtonsState();
 			}
 			audioProcessor.sendChangeMessage(); // refresh ui
-		};
+			};
 		button.setAlpha(0.f);
-	};
+		};
 
 	int col = 0;int row = 0;
 	addButton(flipXBtn, "FlipX", col, row, EditInvertX);col += 70;
@@ -45,6 +45,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	col = maxBtn.getBounds().getRight() + 20;
 	addToolButton(silenceBtn, col, row, 25, 25, CellShape::SSilence); col += 25;
 	addToolButton(lineBtn, col, row, 25, 25, CellShape::SLine); col += 25;
+	addToolButton(lpointBtn, col, row, 25, 25, CellShape::SLPoint); col += 25;
 	addToolButton(rampdnBtn, col, row, 25, 25, CellShape::SRampDn); col += 25;
 	addToolButton(rampupBtn, col, row, 25, 25, CellShape::SRampUp); col += 25;
 	addToolButton(triBtn, col, row, 25, 25, CellShape::STri); col += 25;
@@ -59,7 +60,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		auto snap = audioProcessor.sequencer->cells;
 		audioProcessor.sequencer->randomize(audioProcessor.sequencer->editMode, randomMin, randomMax);
 		audioProcessor.sequencer->createUndo(snap);
-	};
+		};
 
 	col += 25;
 	addAndMakeVisible(randomMenuBtn);
@@ -67,9 +68,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	randomMenuBtn.setBounds(col,row,25,25);
 	randomMenuBtn.onClick = [this]() {
 		PopupMenu menu;
-		menu.addItem(3, "Random Silence");
 		menu.addItem(1, "Random All");
-		menu.addItem(2, "Random All + Silence");
 		Point<int> pos = localPointToGlobal(randomMenuBtn.getBounds().getTopRight());
 		menu.showMenuAsync(PopupMenu::Options().withTargetScreenArea({ pos.getX(), pos.getY(), 1, 1 }), [this](int result) {
 			if (result == 1 || result == 2) {
@@ -91,8 +90,8 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 				audioProcessor.sequencer->randomize(EditSilence, randomMin, randomMax);
 				audioProcessor.sequencer->createUndo(snap);
 			}
-		});
-	};
+			});
+		};
 
 	addAndMakeVisible(randomRange);
 	randomRange.setTooltip("Random min and max values");
@@ -106,7 +105,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		randomMax = randomRange.getMaxValue();
 		if (randomMin > randomMax)
 			randomRange.setMinAndMaxValues(randomMax, randomMax);
-	};
+		};
 	randomRange.setVelocityModeParameters(1.0,1,0.0,true,ModifierKeys::Flags::shiftModifier);
 
 	addAndMakeVisible(clearBtn);
@@ -115,7 +114,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	clearBtn.setBounds(getRight() - 60, row, 60, 25);
 	clearBtn.onClick = [this]() {
 		audioProcessor.sequencer->clear(audioProcessor.sequencer->editMode);
-	};
+		};
 
 	row = 0;
 	col = getWidth();
@@ -129,7 +128,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		audioProcessor.sequencer->clear();
 		audioProcessor.sequencer->createUndo(snap);
 		audioProcessor.sequencer->build();
-	};
+		};
 
 	col -= 70;
 	addAndMakeVisible(applyBtn);
@@ -139,7 +138,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	applyBtn.onClick = [this]() {
 		audioProcessor.sequencer->apply();
 		audioProcessor.toggleSequencerMode();
-	};
+		};
 
 	updateButtonsState();
 }
@@ -167,10 +166,9 @@ void SequencerWidget::updateButtonsState()
 	auto mode = audioProcessor.sequencer->editMode;
 	auto modeColor = audioProcessor.sequencer->getEditModeColour(audioProcessor.sequencer->editMode);
 	maxBtn.setToggleState(mode == SeqEditMode::EditMax, dontSendNotification);
-	minBtn.setToggleState(mode == SeqEditMode::EditMin, dontSendNotification);
 	flipXBtn.setToggleState(mode == SeqEditMode::EditInvertX, dontSendNotification);
-	tenBtn.setToggleState(mode == SeqEditMode::EditTension, dontSendNotification);
 	skewBtn.setToggleState(mode == SeqEditMode::EditSkew, dontSendNotification);
+	tenBtn.setToggleState(mode == SeqEditMode::EditTension, dontSendNotification);
 	randomBtn.setColour(TextButton::buttonColourId, modeColor);
 	randomRange.setColour(Slider::backgroundColourId, Colour(COLOR_BG).brighter(0.1f));
 	randomRange.setColour(Slider::trackColourId, Colour(COLOR_ACTIVE).darker(0.5f));
@@ -236,6 +234,17 @@ void SequencerWidget::paint(Graphics& g)
 	linePath.lineTo(bounds.getBottomRight().withY(bounds.getCentreY()));
 	g.strokePath(linePath, PathStrokeType(1.f));
 
+	bounds = lpointBtn.getBounds().toFloat();
+	g.setColour(seq->selectedShape == CellShape::SLPoint ? Colour(COLOR_ACTIVE) : Colour(COLOR_NEUTRAL));
+	//g.drawRect(bounds);
+	auto r = 3.0f;
+	bounds.expand(-5,-5);
+	Path lppath;
+	lppath.startNewSubPath(bounds.getBottomLeft().withY(bounds.getCentreY()));
+	lppath.lineTo(bounds.getBottomRight().withY(bounds.getCentreY()));
+	g.strokePath(lppath, PathStrokeType(1.f));
+	g.fillEllipse(bounds.getX() - r, bounds.getCentreY()-r, r*2, r*2);
+
 	bounds = ptoolBtn.getBounds().toFloat();
 	g.setColour(seq->selectedShape == CellShape::SPTool ? Colour(COLOR_ACTIVE) : Colour(COLOR_NEUTRAL));
 	//g.drawRect(bounds);
@@ -256,7 +265,7 @@ void SequencerWidget::paint(Graphics& g)
 	bounds = randomBtn.getBounds().expanded(-2,-2).toFloat();
 	g.fillRoundedRectangle(bounds, 3.0f);
 	g.setColour(Colour(COLOR_BG));
-	auto r = 3.0f;
+	r = 3.0f;
 	auto circle = Rectangle<float>(bounds.getCentreX() - r, bounds.getCentreY() - r, r*2.f, r*2.f);
 	g.fillEllipse(circle);
 	g.fillEllipse(circle.translated(-6.f,-6.f));

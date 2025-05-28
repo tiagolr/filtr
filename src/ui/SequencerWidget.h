@@ -12,7 +12,6 @@ public:
     ~SequencerWidget() override {}
     void resized() override;
 
-    TextButton minBtn;
     TextButton maxBtn;
     TextButton tenBtn;
     TextButton skewBtn;
@@ -22,6 +21,7 @@ public:
     TextButton rampupBtn;
     TextButton rampdnBtn;
     TextButton lineBtn;
+    TextButton lpointBtn;
     TextButton triBtn;
     TextButton ptoolBtn;
 

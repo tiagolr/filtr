@@ -11,6 +11,7 @@ Sequencer::Sequencer(FILTRAudioProcessor& p) : audioProcessor(p)
     ramp.push_back({ 0, 1.0, 1.0, 0.0, 1 });
     line.push_back({ 0, 0.0, 0.0, 0.0, 1 });
     line.push_back({ 0, 1.0, 0.0, 0.0, 1 });
+    lpoint.push_back({ 0, 0.0, 0.0, 0.0, 1 });
     tri.push_back({ 0, 0.0, 1.0, 0.0, 1 });
     tri.push_back({ 0, 0.5, 0.0, 0.0, 1 });
     tri.push_back({ 0, 1.0, 1.0, 0.0, 1 });
@@ -204,7 +205,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
     }
 
     // toggle editMin if the edit point is closer to min than max
-    if (editMode == EditMax && !isDrag && selectedShape != SLine && !isNewCell) {
+    if (editMode == EditMax && !isDrag && selectedShape != SLine && !isNewCell && selectedShape != SLPoint) {
         auto dymin = std::abs(y - segCells[0]->maxy);
         auto dymax = std::abs(y - segCells[0]->miny);
         if (dymin < dymax) {
@@ -213,7 +214,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
     }
     
     for (auto cell : segCells) {
-        if (cell->shape == SLine) {
+        if (cell->shape == SLine || cell->shape == SLPoint) {
             cell->maxy = 1.0;
         }
         if (editMode == EditMin) {
@@ -430,6 +431,7 @@ std::vector<PPoint> Sequencer::buildSeg(Cell cell)
         : cell.shape == SRampDn ? ramp
         : cell.shape == STri ? tri
         : cell.shape == SLine ? line
+        : cell.shape == SLPoint ? lpoint
         : cell.shape == SPTool ? audioProcessor.getPaintPatern(cell.ptool)->points
         : silence;
 
