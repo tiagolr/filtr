@@ -953,9 +953,6 @@ void FILTRAudioProcessor::queuePattern(int patidx)
             interval = interval * 4;
         queuedPatternCountdown = (interval - timeInSamples % interval) % interval;
     }
-
-    auto param = params.getParameter("pattern");
-    param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
 }
 
 void FILTRAudioProcessor::queueResPattern(int patidx)
@@ -976,9 +973,6 @@ void FILTRAudioProcessor::queueResPattern(int patidx)
             interval = interval * 4;
         queuedResPatternCountdown = (interval - timeInSamples % interval) % interval;
     }
-
-    auto param = params.getParameter("respattern");
-    param->setValueNotifyingHost(param->convertTo0to1((float)(patidx)));
 }
 
 bool FILTRAudioProcessor::supportsDoublePrecisionProcessing() const
@@ -1654,6 +1648,8 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("resenvSidechain", resenvSidechain, nullptr);
     state.setProperty("resenvAutoRel", resenvAutoRel, nullptr);
     state.setProperty("linkSeqToGrid", linkSeqToGrid, nullptr);
+    state.setProperty("currpattern", pattern->index + 1, nullptr);
+    state.setProperty("currrespattern", respattern->index - 12 + 1, nullptr);
 
     for (int i = 0; i < 12; ++i) {
         std::ostringstream oss;
@@ -1729,6 +1725,20 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         resenvSidechain = (bool)state.getProperty("resenvSidechain");
         resenvAutoRel = (bool)state.getProperty("resenvAutoRel");
         linkSeqToGrid = state.hasProperty("linkSeqToGrid") ? (bool)state.getProperty("linkSeqToGrid") : true;
+
+        int currpattern = state.hasProperty("currpattern")
+            ? state.getProperty("currpattern")
+            : (int)params.getRawParameterValue("pattern")->load();
+        queuePattern(currpattern);
+        auto param = params.getParameter("pattern");
+        param->setValueNotifyingHost(param->convertTo0to1((float)currpattern));
+
+        int currrespattern = state.hasProperty("currrespattern")
+            ? state.getProperty("currrespattern")
+            : (int)params.getRawParameterValue("respattern")->load();
+        queuePattern(currrespattern);
+        auto param = params.getParameter("respattern");
+        param->setValueNotifyingHost(param->convertTo0to1((float)currrespattern));
 
         for (int i = 0; i < 12; ++i) {
             patterns[i]->clear();

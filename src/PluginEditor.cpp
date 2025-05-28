@@ -18,7 +18,6 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     audioProcessor.params.addParameterListener("sync", this);
     audioProcessor.params.addParameterListener("grid", this);
     audioProcessor.params.addParameterListener("trigger", this);
-    audioProcessor.params.addParameterListener("pattern", this);
     audioProcessor.params.addParameterListener("cutenvon", this);
     audioProcessor.params.addParameterListener("resenvon", this);
 
@@ -160,10 +159,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         btn->setConnectedEdges (((i != 0) ? Button::ConnectedOnLeft : 0) | ((i != 11) ? Button::ConnectedOnRight : 0));
         btn->setComponentID(i == 0 ? "leftPattern" : i == 11 ? "rightPattern" : "pattern");
         btn->onClick = [i, this]() {
-            MessageManager::callAsync([i, this] {
-                auto param = audioProcessor.params.getParameter("pattern");
-                param->setValueNotifyingHost(param->convertTo0to1((float)(i + 1)));
-            });
+            audioProcessor.queuePattern(i + 1);
         };
         addAndMakeVisible(*btn);
         patterns.push_back(std::move(btn));
@@ -182,10 +178,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
         btn->onClick = [i, this]() {
             MessageManager::callAsync([i, this] {
                 bool linkpats = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load();
-                auto param = linkpats
-                    ? audioProcessor.params.getParameter("pattern")
-                    : audioProcessor.params.getParameter("respattern");
-                param->setValueNotifyingHost(param->convertTo0to1((float)(i + 1)));
+                if (linkpats)
+                    audioProcessor.queuePattern(i + 1);
+                else 
+                    audioProcessor.queueResPattern(i + 1);
             });
         };
         addAndMakeVisible(*btn);
@@ -204,10 +200,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
             patsync = !patsync;
             audioProcessor.params.getParameter("linkpats")->setValueNotifyingHost(patsync ? 1.0f : 0.0f);
             if (patsync) {
-                int pattern = (int)audioProcessor.params.getRawParameterValue("pattern")->load();
-                int respattern = (int)audioProcessor.params.getRawParameterValue("respattern")->load();
-                if (respattern != pattern) {
-                    audioProcessor.queueResPattern(pattern);
+                if (audioProcessor.pattern->index + 12 != audioProcessor.respattern->index) {
+                    audioProcessor.queueResPattern(audioProcessor.pattern->index);
                 }
             }
             toggleUIComponents();
@@ -617,7 +611,6 @@ FILTRAudioProcessorEditor::~FILTRAudioProcessorEditor()
     delete customLookAndFeel;
     audioProcessor.params.removeParameterListener("sync", this);
     audioProcessor.params.removeParameterListener("trigger", this);
-    audioProcessor.params.removeParameterListener("pattern", this);
     audioProcessor.params.removeParameterListener("cutenvon", this);
     audioProcessor.params.removeParameterListener("resenvon", this);
     audioProcessor.removeChangeListener(this);
