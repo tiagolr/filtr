@@ -7,7 +7,7 @@ Sequencer::Sequencer(FILTRAudioProcessor& p) : audioProcessor(p)
     pat = new Pattern(-1);
     clear();
     ramp.push_back({ 0, 0.0, 1.0, 0.0, 1 });
-    ramp.push_back({ 0, 0.0, 0.0, 0.0, 1 });
+    ramp.push_back({ 0, 1e-10, 0.0, 0.0, 1 }); // 1e-10 makes it sort proof
     ramp.push_back({ 0, 1.0, 1.0, 0.0, 1 });
     line.push_back({ 0, 0.0, 0.0, 0.0, 1 });
     line.push_back({ 0, 1.0, 0.0, 0.0, 1 });
