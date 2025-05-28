@@ -75,7 +75,7 @@ void View::paint(Graphics& g) {
         g.setColour(Colours::blue.withAlpha(0.05f));
         g.fillRect(winx, winy, winw, winh);
     }
-    g.setColour(Colours::black.withAlpha(0.1f));
+    g.setColour(Colours::black.withAlpha(0.2f));
     g.fillRect(winx + winw/4, winy, winw/4, winh);
     g.fillRect(winx + winw - winw/4, winy, winw/4, winh);
 
@@ -161,7 +161,7 @@ void View::drawGrid(Graphics& g)
 
     for (int i = 0; i < grid + 1; ++i) {
         auto score = getScore(i);
-        g.setColour(Colours::white.withAlpha(0.025f + score * (0.15f - 0.025f))); // map score into min + score * (max - min)
+        g.setColour(Colours::white.withAlpha(0.02f + score * (0.25f - 0.02f))); // map score into min + score * (max - min)
         float y = (float)(winy + std::round(gridy * i) + 0.5f); // 0.5 removes aliasing
         float x = (float)(winx + std::round(gridx * i) + 0.5f);
 
@@ -694,7 +694,23 @@ void View::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelD
     if (!isEnabled() || patternID != audioProcessor.viewPattern->versionID)
         return;
 
-    (void)event;
+    if (audioProcessor.uimode == UIMode::Seq && (event.mods.isShiftDown() || event.mods.isAltDown())) {
+        int grid = (int)audioProcessor.params.getRawParameterValue("seqstep")->load();
+        auto param = audioProcessor.params.getParameter("seqstep");
+        int newgrid = grid + (wheel.deltaY > 0.f ? -1 : 1);
+        if (audioProcessor.linkSeqToGrid) {
+            audioProcessor.linkSeqToGrid = false;
+        }
+        // constrain grid size to stay on straights or tripplets
+        if (!(grid == 4 && newgrid == 5) && !(grid == 5 && newgrid == 4)) {
+            param->beginChangeGesture();
+            param->setValueNotifyingHost(param->convertTo0to1((float)newgrid));
+            param->endChangeGesture();
+        }
+        return;
+    }
+
+    
     int grid = (int)audioProcessor.params.getRawParameterValue("grid")->load();
     auto param = audioProcessor.params.getParameter("grid");
     int newgrid = grid + (wheel.deltaY > 0.f ? -1 : 1);

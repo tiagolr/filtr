@@ -46,7 +46,7 @@ void Sequencer::drawBackground(Graphics& g)
         bounds = bounds.withRight(winx + winw);
     g.fillRect(bounds);
 
-    if (editMode == EditMax || editMode == EditMin) {
+    if (editMode == EditMax || editMode == EditMin || editMode == EditNone) {
         auto segBounds = getSegBounds(seg).toNearestInt();
         g.setColour(Colour(COLOR_MIDI));
         double xx1 = segBounds.getX();
@@ -55,13 +55,13 @@ void Sequencer::drawBackground(Graphics& g)
         double yy2 = segBounds.getBottom();
         g.drawLine((float)xx1, (float)yy+0.5f, (float)xx2, (float)yy+0.5f);
         g.drawLine((float)xx1, (float)yy2+0.5f, (float)xx2, (float)yy2+0.5f);
-        auto dymin = std::abs(lmousepos.y - segBounds.getY());
-        auto dymax = std::abs(lmousepos.y - segBounds.getBottom());
-        if (dymin < dymax) {
-            g.fillRect((float)xx1, (float)yy-1, (float)(xx2-xx1), 3.f);
+        auto dymax = std::abs(lmousepos.y - segBounds.getY());
+        auto dymin = std::abs(lmousepos.y - segBounds.getBottom());
+        if (lmousepos.y > segBounds.getBottom() || (dymin < dymax && dymin < 50)) {
+            g.fillRect((float)xx1, (float)yy2-1, (float)(xx2-xx1), 3.f);
         }
         else {
-            g.fillRect((float)xx1, (float)yy2-1, (float)(xx2-xx1), 3.f);
+            g.fillRect((float)xx1, (float)yy-1, (float)(xx2-xx1), 3.f);
         }
     }
 }
@@ -69,7 +69,7 @@ void Sequencer::drawBackground(Graphics& g)
 void Sequencer::draw(Graphics& g)
 {
     // draw hovered cell min and max lines
-    if (editMode == EditMax || editMode == EditMin)
+    if (editMode == EditMax || editMode == EditMin || editMode == EditNone)
         return;
 
     g.setColour(Colours::black.withAlpha(0.25f));
@@ -94,7 +94,13 @@ void Sequencer::draw(Graphics& g)
             : editMode == EditSkew ? cell.skew * -1
             : 0.0;
 
-        auto bounds = Rectangle<float>((float)winx+(float)cell.minx*winw, (float)winy + winh / 2.f, (float)(cell.maxx - cell.minx) * winw, winh / 2.f * std::fabs((float)value));
+        auto bounds = Rectangle<float>(
+            (float)winx+(float)cell.minx*winw, 
+            (float)winy + winh / 2.f, 
+            (float)(cell.maxx - cell.minx) * winw, 
+            winh / 2.f * std::fabs((float)value)
+        );
+
         if (value > 0.0)
             bounds = bounds.withY(winy+winh/2.f-bounds.getHeight());
         if (value == 0.0)
@@ -158,31 +164,38 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
     int step = audioProcessor.getCurrentSeqStep();
     int seg = (int)(x * grid);
     double x1 = int(x / (1.0/grid)) * (1.0/grid);
-    double x2 = x1 + 1.0/step;
+    double x2 = std::min(x1 + 1.0/step, 1.0);
 
     if (isSnapping(e)) {
         auto snapy = grid % 6 == 0 ? 12.0 : 16.0;
         y = std::round(y * snapy) / snapy;
     }
 
-    bool canAddCell = (editMode == EditMax || editMode == EditMin) && selectedShape != SNone;
-    auto segCells = getCellsInRange(x1, x2);
+    bool canAddCell = (editMode == EditMax || editMode == EditMin) && editMode != EditNone;
+    auto segCells = getCellsInRange(x1, x2, !canAddCell);
     auto segBounds = getSegBounds(seg);
 
     // toggle editMin if the edit point is closer to min than max
     if (editMode == EditMax && !isDrag && selectedShape != SLine && selectedShape != SLPoint) {
         auto dymax = std::abs(e.getPosition().y - segBounds.getY()); ////
         auto dymin = std::abs(e.getPosition().y - segBounds.getBottom());
-        if (dymin < dymax) {
+        if ((e.getPosition().y > segBounds.getBottom()) || (dymin < dymax && dymin < 50)) {
             editMode = EditMin;
         }
+    }
+    else if (editMode == EditNone && !isDrag) {
+        auto dymax = std::abs(e.getPosition().y - segBounds.getY()); ////
+        auto dymin = std::abs(e.getPosition().y - segBounds.getBottom());
+        editNoneEditsMax = dymin > dymax || selectedShape == SLine || selectedShape == SLPoint;
     }
 
     if (e.mods.isRightButtonDown()) {
         for (auto cell : segCells) {
             if (cell->shape == SSilence) continue;
-            else if (editMode == EditMin) cell->maxy = 1.0;
-            else if (editMode == EditMax) cell->miny = 0.0;
+            else if (editMode == EditMin || editMode == EditMax || editMode == EditNone) {
+                clearSegment(x1, x2, true);
+                build();
+            }
             else if (editMode == EditTenAtt) cell->tenatt = 0.0;
             else if (editMode == EditTenRel) cell->tenrel = 0.0;
             else if (editMode == EditTension) cell->tenatt = cell->tenrel = 0.0;
@@ -200,7 +213,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
             addCell(x1, x2);
             isNewCell = true;
         }
-        segCells = getCellsInRange(x1, x2);
+        segCells = getCellsInRange(x1, x2, false);
         if (isNewCell) {
             segCells[0]->miny = (segBounds.getY() - winy) / (double)winh; //////
             segCells[0]->maxy = (segBounds.getBottom() - winy) / (double)winh;
@@ -233,19 +246,24 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
     }
 
     for (auto cell : segCells) {
-        if (editMode == EditMin) {
+        if (editMode == EditMin || (editMode == EditNone && !editNoneEditsMax)) {
             cell->maxy = y; // y coordinates are inverted
             if (cell->miny > y)
                 cell->miny = y;
         }
-        else if (editMode == EditMax) {
+        else if (editMode == EditMax || (editMode == EditNone && editNoneEditsMax)) {
             cell->miny = y; // y coordinates are inverted
             if (cell->maxy < y)
                 cell->maxy = y;
         }
         else if (editMode == EditInvertX) {
-            if (!isDrag)
-                startInvertX = !segCells[0]->invertx;
+            if (!isDrag && cell == segCells[0]) {
+                auto idx = getCellIndexAt(x); // get cell at mouse position
+                if (idx > 0)
+                    startInvertX = !cells[idx].invertx;
+                else
+                    startInvertX = !segCells[0]->invertx;
+            }
             cell->invertx = startInvertX;
         }
         else if (editMode == EditTension) {
@@ -267,9 +285,6 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         else if (editMode == EditSkew) {
             cell->skew = y * 2 - 1;
         }
-        if (cell->shape == SLine || cell->shape == SLPoint) {
-            cell->maxy = std::min(cell->miny + 1e-10, 1.0);
-        }
     }
 
     build();
@@ -286,6 +301,19 @@ int Sequencer::getCellIndex(double minx, double maxx)
 
     return -1;
 }
+
+int Sequencer::getCellIndexAt(double x)
+{
+    for (int i = 0; i < cells.size(); ++i) {
+        auto& cell = cells[i];
+        if (cell.minx <= x && cell.maxx >= x)
+            return i;
+    }
+
+    return -1;
+}
+
+
 
 ////
 Rectangle<double> Sequencer::getSegBounds(int segidx)
@@ -306,7 +334,9 @@ Rectangle<double> Sequencer::getSegBounds(int segidx)
         }
     }
 
-    return Rectangle<double>(minx * winw + winx, std::min(maxy, miny) * winh + winy, (double)segw, std::fabs(miny - maxy) * winh); 
+    auto bounds = Rectangle<double>(minx * winw + winx, std::min(maxy, miny) * winh + winy, (double)segw, std::fabs(miny - maxy) * winh); 
+    bounds.setRight(std::min(bounds.getRight(), (double)(winw + winx)));
+    return bounds;
 }
 
 int Sequencer::addCell(double minx, double maxx)
@@ -332,12 +362,15 @@ int Sequencer::addCell(double minx, double maxx)
 /*
 * Returns cells that start between minx and maxx
 */
-std::vector<Cell*> Sequencer::getCellsInRange(double minx, double maxx) {
+std::vector<Cell*> Sequencer::getCellsInRange(double minx, double maxx, bool getOverlapped) {
     std::vector<Cell*> result;
     auto eps = 1e-10;
 
     for (auto& cell : cells) {
-        if (cell.minx + eps >= minx && cell.maxx - eps <= maxx) {
+        auto overlaps = cell.maxx - eps >= minx && cell.minx + eps <= maxx;
+        auto contains = cell.minx + eps >= minx && cell.maxx - eps <= maxx;
+
+        if ((!getOverlapped && contains) || (getOverlapped && overlaps)) {
             result.push_back(&cell);
         }
     }

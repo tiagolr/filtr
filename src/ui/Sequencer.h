@@ -20,6 +20,7 @@ enum CellShape {
 };
 
 enum SeqEditMode {
+    EditNone,
     EditMin,
     EditMax,
     EditTension,
@@ -47,6 +48,7 @@ struct Cell {
 class Sequencer {
 public:
     std::vector<Cell> cells;
+    bool editNoneEditsMax = true;
     SeqEditMode editMode = SeqEditMode::EditMax;
     CellShape selectedShape = CellShape::SRampDn;
     int patternIdx = -1;
@@ -74,8 +76,9 @@ public:
     Pattern* getCurrentPattern();
     std::vector<PPoint> buildSeg(Cell cell);
     int getCellIndex(double minx, double maxx);
+    int getCellIndexAt(double x);
     Rectangle<double> getSegBounds(int segidx);
-    std::vector<Cell*> getCellsInRange(double minx, double maxx);
+    std::vector<Cell*> getCellsInRange(double minx, double maxx, bool getOverlapping);
     int addCell(double minx, double maxx);
     void clearSegment(double minx, double maxx, bool removeAll);
     void rotateRight();

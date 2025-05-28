@@ -14,22 +14,19 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		button.setColour(TextButton::textColourOffId, color);
 		button.setBounds(col,row,60,25);
 		button.onClick = [this, mode]() {
-			audioProcessor.sequencer->editMode = audioProcessor.sequencer->editMode == mode ? EditMax : mode;
+			audioProcessor.sequencer->editMode = audioProcessor.sequencer->editMode == mode ? EditNone : mode;
 			updateButtonsState();
-			};
 		};
+	};
 
 	auto addToolButton = [this](TextButton& button, int col, int row, int w, int h, CellShape shape) {
 		addAndMakeVisible(button);
 		button.setBounds(col, row, w, h);
 		button.onClick = [this, shape]() {
-			audioProcessor.sequencer->selectedShape = audioProcessor.sequencer->selectedShape == shape ? SNone : shape;
+			audioProcessor.sequencer->selectedShape = shape;
 			audioProcessor.showPaintWidget = audioProcessor.sequencer->selectedShape == SPTool;
-			auto editMode = audioProcessor.sequencer->editMode;
-			if (editMode != EditMin && editMode != EditMax) {
-				audioProcessor.sequencer->editMode = EditMax;
-				updateButtonsState();
-			}
+			audioProcessor.sequencer->editMode = EditMax;
+			updateButtonsState();
 			audioProcessor.sendChangeMessage(); // refresh ui
 			};
 		button.setAlpha(0.f);
@@ -119,6 +116,8 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		audioProcessor.sequencer->clear();
 		audioProcessor.sequencer->createUndo(snap);
 		audioProcessor.sequencer->build();
+		audioProcessor.sequencer->editMode = EditMax;
+		updateButtonsState();
 	};
 
 	col -= 70;
@@ -133,6 +132,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 
 	col -= 70;
 	addAndMakeVisible(linkStepBtn);
+	linkStepBtn.setTooltip("Link sequencer step size and grid size");
 	linkStepBtn.setBounds(col-25,row,25,25);
 	linkStepBtn.setAlpha(0.f);
 	linkStepBtn.onClick = [this] {
@@ -149,6 +149,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 	col -= 60;
 	stepSelector = std::make_unique<GridSelector>(audioProcessor, true);
 	addAndMakeVisible(*stepSelector);
+	stepSelector->setTooltip("Shift + Wheel on view to change step size");
 	stepSelector->setBounds(col, row, 50, 25);
 
 	updateButtonsState();
