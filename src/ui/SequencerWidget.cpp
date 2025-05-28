@@ -1,7 +1,7 @@
 #include "SequencerWidget.h"
 #include "../PluginProcessor.h"
 
-SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p) 
+SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 {
 	auto addButton = [this](TextButton& button, String label, int col, int row, SeqEditMode mode) {
 		Colour color = audioProcessor.sequencer->getEditModeColour(mode);
@@ -71,7 +71,7 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 		menu.addItem(1, "Random All");
 		Point<int> pos = localPointToGlobal(randomMenuBtn.getBounds().getTopRight());
 		menu.showMenuAsync(PopupMenu::Options().withTargetScreenArea({ pos.getX(), pos.getY(), 1, 1 }), [this](int result) {
-			if (result == 1 || result == 2) {
+			if (result == 1) {
 				auto snap = audioProcessor.sequencer->cells;
 				audioProcessor.sequencer->clear(EditMax);
 				audioProcessor.sequencer->clear(EditMin);
@@ -80,18 +80,9 @@ SequencerWidget::SequencerWidget(FILTRAudioProcessor& p) : audioProcessor(p)
 				audioProcessor.sequencer->randomize(EditTenAtt, randomMin, randomMax);
 				audioProcessor.sequencer->randomize(EditTenRel, randomMin, randomMax);
 				audioProcessor.sequencer->randomize(EditInvertX, randomMin, randomMax);
-				if (result == 2) {
-					audioProcessor.sequencer->randomize(EditSilence, randomMin, randomMax);
-				}
-				audioProcessor.sequencer->createUndo(snap);
 			}
-			else if (result == 3) {
-				auto snap = audioProcessor.sequencer->cells;
-				audioProcessor.sequencer->randomize(EditSilence, randomMin, randomMax);
-				audioProcessor.sequencer->createUndo(snap);
-			}
-			});
-		};
+		});
+	};
 
 	addAndMakeVisible(randomRange);
 	randomRange.setTooltip("Random min and max values");
@@ -283,7 +274,7 @@ void SequencerWidget::paint(Graphics& g)
 	g.fillEllipse(bounds.translated(0.f,r*3.f));
 }
 
-void SequencerWidget::mouseDown(const juce::MouseEvent& e) 
+void SequencerWidget::mouseDown(const juce::MouseEvent& e)
 {
 	(void)e;
 }

@@ -1,7 +1,7 @@
 #include "Sequencer.h"
 #include "../PluginProcessor.h"
 
-Sequencer::Sequencer(FILTRAudioProcessor& p) : audioProcessor(p) 
+Sequencer::Sequencer(FILTRAudioProcessor& p) : audioProcessor(p)
 {
     tmp = new Pattern(-1);
     pat = new Pattern(-1);
@@ -47,7 +47,7 @@ void Sequencer::drawBackground(Graphics& g)
         auto idx = getCellIndex(x1, x2);
         if (idx > -1) {
             auto& cell = cells[idx];
-            g.setColour(Colour(COLOR_ACTIVE));
+            g.setColour(Colour(COLOR_MIDI));
             double xx1 = winx + winw * std::clamp(cell.minx, 0.0, 1.0);
             double xx2 = winx + winw * std::clamp(cell.maxx, 0.0, 1.0);
             double yy = winy + winh * cell.maxy;
@@ -126,9 +126,9 @@ void Sequencer::mouseDown(const MouseEvent& e)
 }
 
 void Sequencer::mouseUp(const MouseEvent& e)
-{   
+{
     (void)e;
-    if (editMode == EditMin) 
+    if (editMode == EditMin)
         editMode = EditMax;
     createUndo(snapshot);
 }
@@ -142,7 +142,7 @@ void Sequencer::mouseDoubleClick(const juce::MouseEvent& e)
 void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
     double x = (e.getPosition().x - winx) / (double)winw;
     double y = (e.getPosition().y - winy) / (double)winh;
-    
+
     x = jlimit(0.0, 1.0 - 1e-8, x);
     y = jlimit(0.0, 1.0, y);
 
@@ -155,9 +155,9 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         y = std::round(y * snapy) / snapy;
     }
 
-    bool canAddCell = (editMode == EditMax || editMode == EditMin) && selectedShape != SNone;
+    bool canAddCell = (editMode == EditMax) && selectedShape != SNone;
     auto segCells = getCellsInRange(x1, x2);
-    
+
     if (e.mods.isRightButtonDown()) {
         for (auto cell : segCells) {
             if (cell->shape == SSilence) continue;
@@ -167,6 +167,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
             else if (editMode == EditTenRel) cell->tenrel = 0.0;
             else if (editMode == EditTension) cell->tenatt = cell->tenrel = 0.0;
             else if (editMode == EditInvertX) cell->invertx = false;
+            else if (editMode == EditSkew) cell->skew = 0.0;
         }
         build();
         return;
@@ -182,15 +183,18 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
         segCells = getCellsInRange(x1, x2);
     }
 
+    if (segCells.empty())
+        return;
+
     if (canAddCell) {
         auto cell = segCells[0]; // there is only one cell on this segment because it has been cleared
-        
+
         if (selectedShape == SSilence) {
             clearSegment(x1, x2, true);
             build();
             return;
         }
-        
+
         if (selectedShape == SPTool) {
             cell->shape = selectedShape;
             cell->lshape = selectedShape;
@@ -212,7 +216,7 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
             editMode = EditMin;
         }
     }
-    
+
     for (auto cell : segCells) {
         if (cell->shape == SLine || cell->shape == SLPoint) {
             cell->maxy = 1.0;
@@ -241,9 +245,9 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
                 cell->tenrel = y * 2 - 1;
             else
                 cell->tenatt = y * 2 - 1;
-        } 
+        }
         else if (editMode == EditTenRel) {
-            if (cell->invertx) 
+            if (cell->invertx)
                 cell->tenatt = y * 2 - 1;
             else
                 cell->tenrel = y * 2 - 1;
@@ -258,9 +262,10 @@ void Sequencer::onMouseSegment(const MouseEvent& e, bool isDrag) {
 
 int Sequencer::getCellIndex(double minx, double maxx)
 {
+    double eps = 1e-10;
     for (int i = 0; i < cells.size(); ++i) {
         auto& cell = cells[i];
-        if (cell.minx >= minx && cell.minx < maxx)
+        if (cell.minx + eps >= minx && cell.maxx - eps <= maxx)
             return i;
     }
 
@@ -269,8 +274,10 @@ int Sequencer::getCellIndex(double minx, double maxx)
 
 int Sequencer::addCell(double minx, double maxx)
 {
-    cells.erase(std::remove_if(cells.begin(), cells.end(), [minx, maxx](const Cell& cell) {
-        return cell.minx < maxx && cell.maxx > minx;
+    double eps = 1e-10;
+    cells.erase(std::remove_if(cells.begin(), cells.end(), [eps, minx, maxx](const Cell& cell) {
+        bool overlaps = cell.minx < maxx - eps && cell.maxx > minx + eps;
+        return overlaps;
     }), cells.end());
 
     Cell cell = { selectedShape, selectedShape, audioProcessor.paintTool, false, minx, maxx, 0.0, 1.0, 0.0, 0.0, 0.0 };
@@ -301,15 +308,48 @@ std::vector<Cell*> Sequencer::getCellsInRange(double minx, double maxx) {
 }
 
 /*
-* Remove cells in a segment if they don't start and end in the segments range
+bool exactMatch = std::abs(cell.minx - minx) < eps && std::abs(cell.maxx - maxx) < eps;
+bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
+// move overlapping cell to the left
+if (!exactMatch && !contains && cell.minx + eps < minx && cell.maxx - eps > minx) {
+    cell.maxx = minx;
+}
+// move overlapping cell to the right
+if (!exactMatch && !contains && cell.minx + eps < maxx && cell.maxx - eps > maxx) {
+    cell.minx = maxx;
+}
+*/
+
+/*
+* clears a segment so new cells can be added
 */
 void Sequencer::clearSegment(double minx, double maxx, bool removeAll)
 {
-    cells.erase(std::remove_if(cells.begin(), cells.end(), [minx, maxx, removeAll](const Cell& cell) {
-        double eps = 1e-10;
+    double eps = 1e-10;
+    for (auto& cell : cells) {
         bool exactMatch = std::abs(cell.minx - minx) < eps && std::abs(cell.maxx - maxx) < eps;
         bool overlaps = cell.minx < maxx - eps && cell.maxx > minx + eps;
-        return overlaps && (!exactMatch || removeAll);
+        bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
+        if (overlaps && !exactMatch && !contains && cell.minx >= 0.0 && cell.maxx <= 1.0) {
+            double cellCenter = 0.5 * (cell.minx + cell.maxx);
+            double rangeCenter = 0.5 * (minx + maxx);
+            if (cellCenter < rangeCenter) 
+                cell.maxx = minx;
+            else
+                cell.minx = maxx;
+        }
+    }
+    // remove cells contained in the segment unless is an exact match
+    cells.erase(std::remove_if(cells.begin(), cells.end(), [eps, minx, maxx, removeAll](const Cell& cell) {
+        bool exactMatch = std::abs(cell.minx - minx) < eps && std::abs(cell.maxx - maxx) < eps;
+        bool overlaps = cell.minx < maxx - eps && cell.maxx > minx + eps;
+        bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
+        //bool contains = cell.minx + eps > minx && cell.maxx - eps < maxx;
+        bool ok = (overlaps || contains) && (!exactMatch || removeAll);
+        if (ok) {
+            DBG("M");
+        }
+        return ok;
     }), cells.end());
 }
 
@@ -354,7 +394,7 @@ void Sequencer::clear(SeqEditMode mode)
         else if (mode == EditMin) cell.maxy = 1.0;
         else if (mode == EditInvertX) cell.invertx = cell.shape == CellShape::SRampUp;
         else if (mode == EditTenAtt) {
-            if (cell.invertx) 
+            if (cell.invertx)
                 cell.tenrel = 0.0;
             else
                 cell.tenatt = 0.0;
@@ -400,7 +440,7 @@ void Sequencer::build()
 }
 
 /*
-* Removes sequential points with the same x coordinate leaving just the first and last 
+* Removes sequential points with the same x coordinate leaving just the first and last
 * Useful for removing extra points in successive patterns like ramps
 */
 std::vector<PPoint> Sequencer::removeCollinearPoints(std::vector<PPoint>& points)
@@ -456,7 +496,7 @@ std::vector<PPoint> Sequencer::buildSeg(Cell cell)
         if (i > 0 && i < size - 1 && skew != 0.0) {
             if (skew > 0)
                 point.x = point.x + skew * (1 - point.x);
-            else 
+            else
                 point.x = point.x + skew * point.x;
         }
     }
@@ -528,8 +568,8 @@ void Sequencer::doublePattern()
 
 void Sequencer::sortCells()
 {
-    std::sort(cells.begin(), cells.end(), [](const Cell& a, const Cell& b) { 
-        return a.minx < b.minx; 
+    std::sort(cells.begin(), cells.end(), [](const Cell& a, const Cell& b) {
+        return a.minx < b.minx;
     });
 }
 
@@ -619,7 +659,7 @@ void Sequencer::undo()
 
 void Sequencer::redo()
 {
-    if (redoStack.empty()) 
+    if (redoStack.empty())
         return;
 
     undoStack.push_back(cells);
@@ -653,7 +693,8 @@ bool Sequencer::compareCells(const std::vector<Cell>& a, const std::vector<Cell>
             a[i].shape != b[i].shape ||
             a[i].tenatt != b[i].tenatt ||
             a[i].tenrel != b[i].tenrel ||
-            a[i].ptool != b[i].ptool
+            a[i].ptool != b[i].ptool ||
+            a[i].skew != b[i].skew
         ) {
             return false;
         }
