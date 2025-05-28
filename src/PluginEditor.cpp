@@ -1007,6 +1007,8 @@ void FILTRAudioProcessorEditor::resized()
 
     audioWidget->setBounds(audioWidget->getBounds().withWidth(getWidth() - PLUG_PADDING * 2));
 
+    about->setBounds(0,0,getWidth(), getHeight());
+
     resenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
     cutenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
 

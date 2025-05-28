@@ -24,6 +24,9 @@ void About::paint(Graphics& g)
 	g.drawText("github.com/tiagolr/filtr", bounds.removeFromTop(25), Justification::centred);
 	g.setColour(Colours::white);
 	bounds.removeFromTop(40);
+	auto w = PLUG_WIDTH - 100;
+	bounds.setWidth(w);
+	bounds.setX(getWidth() / 2 - w/2);
 	g.drawText("- Shift for fine slider adjustments.", bounds.removeFromTop(25), Justification::centredLeft);
 	g.drawText("- Shift toggles snap on/off.", bounds.removeFromTop(25), Justification::centredLeft);
 	g.drawText("- Mouse wheel on view changes grid size.", bounds.removeFromTop(25), Justification::centredLeft);
