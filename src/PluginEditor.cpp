@@ -16,7 +16,6 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
 
     audioProcessor.addChangeListener(this);
     audioProcessor.params.addParameterListener("sync", this);
-    audioProcessor.params.addParameterListener("grid", this);
     audioProcessor.params.addParameterListener("trigger", this);
     audioProcessor.params.addParameterListener("cutenvon", this);
     audioProcessor.params.addParameterListener("resenvon", this);
@@ -626,10 +625,6 @@ void FILTRAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source
 void FILTRAudioProcessorEditor::parameterChanged (const juce::String& parameterID, float newValue)
 {
     (void)newValue;
-    if (parameterID == "grid" && audioProcessor.uimode == UIMode::Seq) {
-        audioProcessor.sequencer->build();
-    }
-
     MessageManager::callAsync([this]() { toggleUIComponents(); });
 };
 
