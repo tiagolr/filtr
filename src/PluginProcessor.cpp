@@ -279,17 +279,16 @@ void FILTRAudioProcessor::createUndoPointFromSnapshot(std::vector<PPoint> snapsh
 void FILTRAudioProcessor::setResonanceEditMode(bool isResonance)
 {
     MessageManager::callAsync([this, isResonance] {
-        if (uimode == UIMode::Seq) {
-            sequencer->close();
-        }
+        if (resonanceEditMode == isResonance) return;
+        auto seqopen = sequencer->isOpen;
+        if (seqopen) sequencer->close();
+        
         resonanceEditMode = isResonance;
         if (uimode != UIMode::PaintEdit) {
             viewPattern = resonanceEditMode ? respattern : pattern;
             viewSubPattern = resonanceEditMode ? pattern : respattern;
         }
-        if (uimode == UIMode::Seq) {
-            sequencer->open();
-        }
+        if (seqopen) sequencer->open();
         sendChangeMessage();
     });
 }
@@ -297,7 +296,7 @@ void FILTRAudioProcessor::setResonanceEditMode(bool isResonance)
 void FILTRAudioProcessor::setUIMode(UIMode mode)
 {
     MessageManager::callAsync([this, mode]() {
-        if (mode != UIMode::Seq && uimode == UIMode::Seq)
+        if ((mode != Seq && mode != PaintEdit) && sequencer->isOpen)
             sequencer->close();
 
         if (mode == UIMode::Normal) {
@@ -318,6 +317,9 @@ void FILTRAudioProcessor::setUIMode(UIMode mode)
             showSequencer = false;
         }
         else if (mode == UIMode::Seq) {
+            if (sequencer->isOpen) {
+                sequencer->close(); // just in case its changing from PaintEdit back to sequencer
+            }
             sequencer->open();
             viewPattern = resonanceEditMode ? respattern : pattern;
             viewSubPattern = resonanceEditMode ? pattern : respattern;
@@ -1377,7 +1379,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         // process queued pattern
         if (queuedPattern) {
             if (!playing || queuedPatternCountdown == 0) {
-                if (uimode == UIMode::Seq) {
+                if (sequencer->isOpen) {
                     sequencer->close(); // sync call (required)
                     setUIMode(UIMode::Normal); // async call
                 }
@@ -1401,7 +1403,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         // process queued res pattern
         if (queuedResPattern) {
             if (!playing || queuedResPatternCountdown == 0) {
-                if (uimode == UIMode::Seq) {
+                if (sequencer->isOpen) {
                     sequencer->close();
                     setUIMode(UIMode::Normal);
                 }
@@ -1664,7 +1666,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
         std::ostringstream ossres;
         auto points = patterns[i]->points;
 
-        if (uimode == Seq && i == sequencer->patternIdx) {
+        if (sequencer->isOpen && i == sequencer->patternIdx) {
             points = sequencer->backup;
         }
 
@@ -1675,7 +1677,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
         points = respatterns[i]->points;
 
-        if (uimode == Seq && i == sequencer->patternIdx - 12) {
+        if (sequencer->isOpen && i == sequencer->patternIdx - 12) {
             points = sequencer->backup;
         }
 
@@ -1708,7 +1710,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
 void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    if (uimode == Seq) {
+    if (sequencer->isOpen) {
         sequencer->close();
     }
 

@@ -409,6 +409,7 @@ void Sequencer::clearSegment(double minx, double maxx, bool removeAll)
 
 void Sequencer::open()
 {
+    isOpen = true;
     auto currpat = getCurrentPattern();
     backup = currpat->points;
     patternIdx = currpat->index;
@@ -419,6 +420,7 @@ void Sequencer::open()
 
 void Sequencer::close()
 {
+    isOpen = false;
     auto currpat = getCurrentPattern();
     if (currpat->index != patternIdx)
         return;

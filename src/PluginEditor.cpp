@@ -624,6 +624,7 @@ void FILTRAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source
 
 void FILTRAudioProcessorEditor::parameterChanged (const juce::String& parameterID, float newValue)
 {
+    (void)parameterID;
     (void)newValue;
     MessageManager::callAsync([this]() { toggleUIComponents(); });
 };
@@ -724,7 +725,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 
     auto uimode = audioProcessor.uimode;
     paintButton.setToggleState(uimode == UIMode::Paint || (uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Paint), dontSendNotification);
-    sequencerButton.setToggleState(uimode == UIMode::Seq || (uimode == UIMode::PaintEdit && audioProcessor.luimode == UIMode::Seq), dontSendNotification);
+    sequencerButton.setToggleState(audioProcessor.sequencer->isOpen, dontSendNotification);
     paintWidget->toggleUIComponents();
 
     cutEnvButton.setVisible(!isResMode);
