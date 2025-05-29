@@ -99,7 +99,11 @@ public:
 //==============================================================================
 /**
 */
-class FILTRAudioProcessor  : public AudioProcessor, public AudioProcessorParameter::Listener, public ChangeBroadcaster
+class FILTRAudioProcessor  
+    : public AudioProcessor
+    , public AudioProcessorParameter::Listener
+    , public ChangeBroadcaster
+    , private AudioProcessorValueTreeState::Listener
 {
 public:
     static constexpr int GRID_SIZES[] = {
@@ -244,6 +248,7 @@ public:
     //==============================================================================
     FILTRAudioProcessor();
     ~FILTRAudioProcessor() override;
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
 
     void loadSettings();
     void saveSettings();

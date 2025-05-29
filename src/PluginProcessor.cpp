@@ -91,6 +91,9 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         param->addListener(this);
     }
 
+    params.addParameterListener("pattern", this);
+    params.addParameterListener("respattern", this);
+
     // init patterns
     for (int i = 0; i < 12; ++i) {
         patterns[i] = new Pattern(i);
@@ -136,6 +139,24 @@ FILTRAudioProcessor::FILTRAudioProcessor()
 
 FILTRAudioProcessor::~FILTRAudioProcessor()
 {
+    params.removeParameterListener("pattern", this);
+    params.removeParameterListener("respattern", this);
+}
+
+void FILTRAudioProcessor::parameterChanged (const juce::String& parameterID, float newValue)
+{
+    if (parameterID == "pattern") {
+        int pat = (int)newValue;
+        if (pat != pattern->index + 1 && pat != queuedPattern) {
+            queuePattern(pat);
+        }
+    }
+    if (parameterID == "respattern") {
+        int pat = (int)newValue;
+        if (pat != respattern->index + 1 - 12 && pat != queuedResPattern) {
+            queueResPattern(pat);
+        }
+    }
 }
 
 void FILTRAudioProcessor::parameterValueChanged (int parameterIndex, float newValue)
@@ -635,15 +656,6 @@ void FILTRAudioProcessor::onSlider()
 
     if (trigger != Trigger::Audio && useMonitor) 
         useMonitor = false;
-
-    int pat = (int)params.getRawParameterValue("pattern")->load();
-    if (pat != pattern->index + 1 && pat != queuedPattern) {
-        queuePattern(pat);
-    }
-    int respat = (int)params.getRawParameterValue("respattern")->load();
-    if (respat != respattern->index + 1 - 12 && respat != queuedResPattern) {
-        queueResPattern(respat);
-    }
 
     auto tension = (double)params.getRawParameterValue("tension")->load();
     auto tensionatk = (double)params.getRawParameterValue("tensionatk")->load();
@@ -1620,10 +1632,6 @@ juce::AudioProcessorEditor* FILTRAudioProcessor::createEditor()
 //==============================================================================
 void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    bool isSeqMode = uimode == UIMode::Seq;
-    if (isSeqMode)
-        sequencer->close();
-
     auto state = ValueTree("PluginState");
     state.appendChild(params.copyState(), nullptr);
     state.setProperty("version", PROJECT_VERSION, nullptr);
@@ -1655,12 +1663,22 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
         std::ostringstream oss;
         std::ostringstream ossres;
         auto points = patterns[i]->points;
+
+        if (uimode == Seq && i == sequencer->patternIdx) {
+            points = sequencer->backup;
+        }
+
         for (const auto& point : points) {
             oss << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
         }
         state.setProperty("pattern" + juce::String(i), var(oss.str()), nullptr);
 
         points = respatterns[i]->points;
+
+        if (uimode == Seq && i == sequencer->patternIdx - 12) {
+            points = sequencer->backup;
+        }
+
         for (const auto& point : points) {
             ossres << point.x << " " << point.y << " " << point.tension << " " << point.type << " ";
         }
@@ -1686,16 +1704,13 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
-
-    if (isSeqMode)
-        sequencer->open();
 }
 
 void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    bool isSeqMode = uimode == UIMode::Seq;
-    if (isSeqMode)
+    if (uimode == Seq) {
         sequencer->close();
+    }
 
     std::unique_ptr<juce::XmlElement>xmlState (getXmlFromBinary (data, sizeInBytes));
     if (!xmlState) return;
@@ -1733,12 +1748,14 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         auto param = params.getParameter("pattern");
         param->setValueNotifyingHost(param->convertTo0to1((float)currpattern));
 
-        int currrespattern = state.hasProperty("currrespattern")
-            ? state.getProperty("currrespattern")
-            : (int)params.getRawParameterValue("respattern")->load();
-        queuePattern(currrespattern);
-        auto param = params.getParameter("respattern");
-        param->setValueNotifyingHost(param->convertTo0to1((float)currrespattern));
+        if (!(bool)params.getRawParameterValue("linkpats")->load()) {
+            int currrespattern = state.hasProperty("currrespattern")
+                ? state.getProperty("currrespattern")
+                : (int)params.getRawParameterValue("respattern")->load();
+            queueResPattern(currrespattern);
+            param = params.getParameter("respattern");
+            param->setValueNotifyingHost(param->convertTo0to1((float)currrespattern));
+        }
 
         for (int i = 0; i < 12; ++i) {
             patterns[i]->clear();
@@ -1795,7 +1812,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         }
     }
 
-    setUIMode(UIMode::Normal);
+    setUIMode(Normal);
 }
 
 //==============================================================================
