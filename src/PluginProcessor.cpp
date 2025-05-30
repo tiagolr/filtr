@@ -442,12 +442,14 @@ void FILTRAudioProcessor::setCurrentProgram (int index)
 
 void FILTRAudioProcessor::loadProgram (int index)
 {
-    if (uimode == UIMode::Seq)
+    if (sequencer->isOpen)
         sequencer->close();
 
     currentProgram = index;
     auto loadPreset = [](Pattern& pat, int idx) {
-        auto preset = Presets::getCutPreset(idx);
+        auto preset = pat.index >= 12 
+            ? Presets::getResPreset(idx)
+            : Presets::getCutPreset(idx);
         pat.clear();
         for (auto p = preset.begin(); p < preset.end(); ++p) {
             pat.insertPoint(p->x, p->y, p->tension, p->type);
@@ -458,14 +460,21 @@ void FILTRAudioProcessor::loadProgram (int index)
 
     if (index == 0) { // Init
         for (int i = 0; i < 12; ++i) {
-            patterns[i]->loadTriangle();
+            patterns[i]->clear();
+            patterns[i]->insertPoint(0.0, 0.0, 0, 1);
             patterns[i]->buildSegments();
             patterns[i]->clearUndo();
+
+            respatterns[i]->clear();
+            respatterns[i]->insertPoint(0.0, 1.0, 0, 1);
+            respatterns[i]->buildSegments();
+            respatterns[i]->clearUndo();
         }
     }
     else if (index == 1 || index == 14 || index == 27) {
         for (int i = 0; i < 12; ++i) {
             loadPreset(*patterns[i], index + i);
+            loadPreset(*respatterns[i], index + i);
         }
     }
     else {
@@ -482,9 +491,9 @@ const juce::String FILTRAudioProcessor::getProgramName (int index)
 {
     static const std::array<juce::String, 40> progNames = {
         "Init",
-        "Load Patterns 01-12", "Empty", "Gate 2", "Gate 4", "Gate 8", "Gate 12", "Gate 16", "Gate 24", "Gate 32", "Trance 1", "Trance 2", "Trance 3", "Trance 4",
-        "Load Patterns 13-25", "Saw 1", "Saw 2", "Step 1", "Step 1 FadeIn", "Step 4 Gate", "Off Beat", "Dynamic 1/4", "Swing", "Gate Out", "Gate In", "Speed up", "Speed Down",
-        "Load Patterns 26-38", "End Fade", "End Gate", "Tremolo Slow", "Tremolo Fast", "Sidechain", "Drum Loop", "Copter", "AM", "Fade In", "Fade Out", "Fade OutIn", "Mute"
+        "Load Patterns 01-12", "Basic 1", "Basic 2", "Basic 3", "Basic 4", "Basic 5", "Basic 6", "Basic 7", "Basic 8", "Basic 9", "Basic 10", "Basic 11", "Basic 12",
+        "Load Patterns 13-25", "Gate 1", "Gate 2", "Gate 3", "Gate 4", "Gate 5", "Gate 6", "Gate 7", "Gate 8", "Gate 9", "Gate 10", "Gate 11", "Gate 12",
+        "Load Patterns 26-38", "Waves 1", "Waves 2", "Waves 3", "Waves 4", "Waves 5", "Waves 6", "FX 1", "FX 2", "FX 3", "FX 4", "FX 5", "FX 6"
     };
     return progNames.at(index);
 }
