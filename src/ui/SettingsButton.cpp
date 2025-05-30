@@ -97,18 +97,18 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 
 	patterns1.addItem(110, "Load All");
 	patterns1.addSeparator();
-	patterns1.addItem(111, "Empty");
-	patterns1.addItem(112, "Basic 1");
-	patterns1.addItem(113, "Basic 2");
-	patterns1.addItem(114, "Basic 3");
-	patterns1.addItem(115, "Basic 4");
-	patterns1.addItem(116, "Basic 5");
-	patterns1.addItem(117, "Basic 6");
-	patterns1.addItem(118, "Basic 7");
-	patterns1.addItem(119, "Basic 8");
-	patterns1.addItem(120, "Basic 9");
-	patterns1.addItem(121, "Basic 10");
-	patterns1.addItem(122, "Basic 11");
+	patterns1.addItem(111, "Basic 1");
+	patterns1.addItem(112, "Basic 2");
+	patterns1.addItem(113, "Basic 3");
+	patterns1.addItem(114, "Basic 4");
+	patterns1.addItem(115, "Basic 5");
+	patterns1.addItem(116, "Basic 6");
+	patterns1.addItem(117, "Basic 7");
+	patterns1.addItem(118, "Basic 8");
+	patterns1.addItem(119, "Basic 9");
+	patterns1.addItem(120, "Basic 10");
+	patterns1.addItem(121, "Basic 11");
+	patterns1.addItem(122, "Basic 12");
 
 	patterns2.addItem(123, "Load All");
 	patterns2.addSeparator();

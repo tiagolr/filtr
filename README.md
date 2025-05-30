@@ -19,7 +19,7 @@
 
 </div>
 
-**FILT-R** is a cross-platform envelope generator for gate/volume control inspired by plugins like GrossBeat and ShaperBox. It is the second version of [GATE-1](https://github.com/tiagolr/gate1) rebuilt from scratch using the _JUCE_ framework.
+**FILT-R** is a cross-platform filter modulator inspired by plugins like ShaperBox and FilterShaper. It is the second version of [FLTR-1 JSFX](https://github.com/tiagolr/tilr_jsfx?tab=readme-ov-file#fltr-1) for the Reaper DAW.
 
 <div align="center">
 
@@ -30,33 +30,23 @@
 
 Also check other plugins from this collection:
 
+* [GATE-12](https://github.com/tiagolr/gate12) - An envelope generator for volume/gate control.
 * [TIME-12](https://github.com/tiagolr/time12) - An envelope based delay modulator.
-
-## Whats new
-
-  * **Cross-platform** available on Windows, macOS and Linux
-  * **Presets** included
-  * **Audio trigger** uses audio transients to trigger the envelope
-  * **Pattern sync** changes to beat position
-  * **Multi-point** selection dragging, scaling and skewing
-  * **Paint-mode** revamped with user patterns painted on view
-  * **Rotate patterns** no longer constrained by start and end points
-  * **Undo & Redo** supported
-  * **Sequencer** built-in to quickly build and randomize patterns
-  * Other **improvements and fixes**
 
 ## Features
 
-  * Multi-segment editor
+  * 6 Unique filters with different slopes and modes
+  * 5 Modes per filter (LP, BP, HP, Notch and Peak)
   * 12 patterns triggered by midi notes
   * Paint mode with user defined shapes
   * Point type - hold, curve, s-curve, stairs ..
+  * Built-in sequencer and randomizer
+  * Envelope followers for resonance and cutoff
   * Tempo sync or lfo rate (Hz)
   * Attack and release smooth
   * Pre and post waveform display
   * MIDI trigger mode
   * Audio trigger mode
-  * Sequencer and randomizer
 
 ## Download
 
@@ -66,9 +56,7 @@ Also check other plugins from this collection:
 
 ## About
 
-FILT-R is an envelope generator plugin that combines some of the best features of GrossBeat and ShaperBox, it includes a point system very similar to GrossBeat but also with some great features of ShaperBox like self repeating patterns, multi-point selections that can be scaled or skewed, audio envelope triggering and more.
-
-With version 2 this plugin was rebuilt from scratch using JUCE for its cross-platforms capabilities, maintainability and overall development tools/processes.
+FILT-R is an envelope generator plugin that applies the same engine of GATE-12 and TIME-12 to filter modulation. it includes 6 unique filters, three of them grabbed from [Saikes Yutani Bass](https://github.com/JoepVanlier/JSFX) (303, MS-20 and Linear), a Moog filter which is the JUCEs stock ladder filter adapted to this project and finally an Analog/Sallen Key and Phaser filters which were broght from [Vital](https://github.com/mtytel/vital) synth source code.
 
 ### Features
 
@@ -128,6 +116,7 @@ After creating a sequence click `Apply` to save it as the current pattern and ed
 - `Right click` points changes point type.
 - `Alt + drag` selection handles skews selected points.
 - `Right click + drag` in paint mode changes paint tool tension.
+- `Shift + mouse wheel` on sequencer to change step size.
 
 ## MacOS
 
