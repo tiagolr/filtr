@@ -15,7 +15,6 @@
 #include "../dsp/Pattern.h"
 #include "Multiselect.h"
 #include "PaintTool.h"
-#include "../dsp/Utils.h"
 
 class FILTRAudioProcessor;
 using namespace globals;

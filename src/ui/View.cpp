@@ -98,27 +98,6 @@ void View::paint(Graphics& g) {
     if (uimode == UIMode::Normal || uimode == UIMode::PaintEdit) {
         drawMidPoints(g);
         drawPoints(g);
-
-        // draw Hz or kHz label on selected points
-        if (selectedPoint > -1) {
-            try {
-                auto pt = audioProcessor.viewPattern->points.at(selectedPoint);
-                auto x = pt.x * winw + winx;
-                auto y = pt.y * winh + winy;
-                auto w = 40;
-                auto h = 20;
-                auto hz = Utils::normalToFreq(1.0 - pt.y);
-                auto val = hz > 1000 
-                    ? (int)(hz * 10) / 10000 
-                    : (int)hz;
-
-                auto txt = String(val) + (hz > 1000 ? "kHz" : "Hz");
-                g.setFont(FontOptions(14.f));
-                g.setColour(audioProcessor.resonanceEditMode ? Colour(COLOR_ACTIVE) : Colours::white);
-                g.drawFittedText(txt, pt.x > 0.5 ? x - w - 10 : x + 10, y - h/2, w, h, Justification::centred, 1);
-            }
-            catch (...) {}
-        }
     }
 
     if (uimode == UIMode::Paint && (isMouseOver() || paintTool.dragging)) {
