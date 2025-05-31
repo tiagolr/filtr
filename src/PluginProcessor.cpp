@@ -1510,7 +1510,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         else if (trigger == Trigger::Audio) {
             // read the sample 'latency' samples ago
             int latency = (int)latBufferL.size();
-            int readPos = (latpos + latency - 1) % latency;
+            int readPos = (latpos + 1) % latency;
             latBufferL[latpos] = upsampledBlock.getSample(0, sample);
             latBufferR[latpos] = upsampledBlock.getSample(1, sample);
             auto lsample = latBufferL[readPos];
