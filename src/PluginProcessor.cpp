@@ -893,10 +893,10 @@ void FILTRAudioProcessor::restartEnv(bool fromZero)
             ? beatPos / syncQN + phase
             : ratePos + phase;
         xpos -= std::floor(xpos);
-    }
 
-    value->reset(getYcut(xpos, min, max, cutoffset)); // reset smooth
-    resvalue->reset(getYres(xpos, min, max, resoffset));
+        value->reset(getYcut(xpos, min, max, cutoffset));
+        resvalue->reset(getYres(xpos, min, max, resoffset));
+    }
 }
 
 void FILTRAudioProcessor::onStop()
