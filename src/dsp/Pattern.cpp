@@ -310,12 +310,14 @@ void Pattern::transform(double midy)
     avg /= points.size();
 
     if (avg <= midy) {
+        if (avg == 1.0) avg -= 1e-10;
         double alpha = (midy - avg) / (1.0 - avg);
         for (int i = 0; i < points.size(); i++) {
             points[i].y = rawpoints[i].y + alpha * (1 - rawpoints[i].y);
         }
     }
     else {
+        if (avg == 0.0) avg += 1e-10;
         double beta = (avg - midy) / avg;
         for (int i = 0; i < points.size(); i++) {
             points[i].y = (1.0 - beta) * rawpoints[i].y;
