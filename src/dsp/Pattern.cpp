@@ -308,13 +308,8 @@ void Pattern::transform(double midy)
         avg += p.y;
     }
     avg /= points.size();
-    if (avg == midy) {
-        incrementVersion();
-        buildSegments();
-        return;
-    }
 
-    if (avg < midy) {
+    if (avg <= midy) {
         double alpha = (midy - avg) / (1.0 - avg);
         for (int i = 0; i < points.size(); i++) {
             points[i].y = rawpoints[i].y + alpha * (1 - rawpoints[i].y);
