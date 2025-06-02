@@ -74,7 +74,15 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 	output.addSeparator();
 	output.addItem(701, "Bipolar CC", true, audioProcessor.bipolarCC);
 
+	PopupMenu lerp;
+	auto value = audioProcessor.params.getRawParameterValue("flerp")->load();
+	lerp.addItem(800, "Off", true, value == 0.f);
+	lerp.addItem(801, "Low", true, value == 0.5f);
+	lerp.addItem(802, "High", true, value == 1.0f);
+
+
 	PopupMenu options;
+	options.addSubMenu("Filter lerp", lerp);
 	options.addSubMenu("Output", output);
 	options.addSubMenu("Cut trigger chn", triggerChn);
 	options.addSubMenu("Res trigger chn", triggerResChn);
@@ -283,6 +291,12 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 			}
 			else if (result == 701) {
 				audioProcessor.bipolarCC = !audioProcessor.bipolarCC;
+			}
+			else if (result >= 800 && result <= 802) {
+				auto lerp = result == 800 ? 0.f
+					: result == 801 ? 0.5f
+					: 1.0f;
+				audioProcessor.params.getParameter("flerp")->setValueNotifyingHost(lerp);
 			}
 			else if (result == 1000) {
 				toggleAbout();
