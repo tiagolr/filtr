@@ -19,7 +19,7 @@
 
 </div>
 
-**FILT-R** is a cross-platform filter modulator inspired by plugins like ShaperBox and FilterShaper. It is the second version of [FLTR-1 JSFX](https://github.com/tiagolr/tilr_jsfx?tab=readme-ov-file#fltr-1) for the Reaper DAW.
+**FILT-R** is a cross-platform filter modulator based on plugins like ShaperBox and FilterShaper. It is the second version of [FLTR-1 JSFX](https://github.com/tiagolr/tilr_jsfx?tab=readme-ov-file#fltr-1) for the Reaper DAW.
 
 <div align="center">
 
@@ -56,7 +56,7 @@ Also check other plugins from this collection:
 
 ## About
 
-FILT-R is an envelope generator plugin that applies the same engine of GATE-12 and TIME-12 to filter modulation. it includes 6 unique filters, three of them grabbed from [Saikes Yutani Bass](https://github.com/JoepVanlier/JSFX) (303, MS-20 and Linear), a Moog filter which is the JUCEs stock ladder filter adapted to this project and finally an Analog/Sallen Key and Phaser filters which came from [Vital](https://github.com/mtytel/vital) synth source code.
+FILT-R is an envelope generator plugin that applies the same engine of GATE-12 and TIME-12 to filter modulation. It includes 6 unique filters, three of them grabbed from [Saikes Yutani Bass](https://github.com/JoepVanlier/JSFX) (303, MS-20 and Linear), a Moog filter which is the JUCEs stock ladder filter adapted to this project and finally an Analog/Sallen Key and Phaser filters which came from [Vital](https://github.com/mtytel/vital) synth source code.
 
 ### Features
 
@@ -75,6 +75,10 @@ This mode has to be activated by clicking the `Paint` button, a list of patterns
 ![patterns](/doc/patterns.png)
 
 There are 32 patterns that can be used and edited, these patterns are saved in the settings file and shared by any instances of the plugin.
+
+#### Envelope Followers
+
+Envelope followers for cutoff and resonance can be activated in the `Envelope` section by setting the amount positive or negative. This feature like many others was introduced by ShaperBox and had to be included in this project.
 
 #### Self repeating patterns
 
