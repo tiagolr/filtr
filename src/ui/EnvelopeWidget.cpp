@@ -171,7 +171,9 @@ void EnvelopeWidget::parameterChanged(const juce::String& parameterID, float new
     if (parameterID == "cutenvhighcut" || parameterID == "resenvhighcut") {
         filterRange.setMaxValue((double)newValue, dontSendNotification);
     }
-    repaint();
+    MessageManager::callAsync([this] {
+        repaint();
+    });
 }
 
 void EnvelopeWidget::paint(juce::Graphics& g) 
