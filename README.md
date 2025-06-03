@@ -19,7 +19,8 @@
 
 </div>
 
-**FILT-R** is a cross-platform filter modulator based on plugins like ShaperBox and FilterShaper. It is the second version of [FLTR-1 JSFX](https://github.com/tiagolr/tilr_jsfx?tab=readme-ov-file#fltr-1) for the Reaper DAW.
+**FILT-R** is a cross-platform filter modulator based on plugins like ShaperBox and FilterShaper. It is the second version of [FLTR-1 JSFX](https://github.com/tiagolr/tilr_jsfx?tab=readme-ov-file#fltr-1) for the Reaper DAW. 
+It includes 6 filter types: Linear, Sallen-Key, Moog, 303, MS-20 and Phaser. The filters also come with different modes and slopes. 
 
 <div align="center">
 
