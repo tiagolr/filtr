@@ -37,7 +37,7 @@ Also check other plugins from this collection:
 
   * 6 Unique filters with different slopes and modes
   * 5 Modes per filter (LP, BP, HP, Notch and Peak)
-  * 12 patterns triggered by midi notes
+  * 12 patterns for resonance and cutoff triggered by midi notes
   * Paint mode with user defined shapes
   * Point type - hold, curve, s-curve, stairs ..
   * Built-in sequencer and randomizer
@@ -56,7 +56,7 @@ Also check other plugins from this collection:
 
 ## About
 
-FILT-R is an envelope generator plugin that applies the same engine of GATE-12 and TIME-12 to filter modulation. it includes 6 unique filters, three of them grabbed from [Saikes Yutani Bass](https://github.com/JoepVanlier/JSFX) (303, MS-20 and Linear), a Moog filter which is the JUCEs stock ladder filter adapted to this project and finally an Analog/Sallen Key and Phaser filters which were broght from [Vital](https://github.com/mtytel/vital) synth source code.
+FILT-R is an envelope generator plugin that applies the same engine of GATE-12 and TIME-12 to filter modulation. it includes 6 unique filters, three of them grabbed from [Saikes Yutani Bass](https://github.com/JoepVanlier/JSFX) (303, MS-20 and Linear), a Moog filter which is the JUCEs stock ladder filter adapted to this project and finally an Analog/Sallen Key and Phaser filters which came from [Vital](https://github.com/mtytel/vital) synth source code.
 
 ### Features
 
