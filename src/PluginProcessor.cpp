@@ -1753,7 +1753,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         linkSeqToGrid = state.hasProperty("linkSeqToGrid") ? (bool)state.getProperty("linkSeqToGrid") : true;
 
         int currpattern = state.hasProperty("currpattern")
-            ? state.getProperty("currpattern")
+            ? (int)state.getProperty("currpattern")
             : (int)params.getRawParameterValue("pattern")->load();
         queuePattern(currpattern);
         auto param = params.getParameter("pattern");
@@ -1761,7 +1761,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
 
         if (!(bool)params.getRawParameterValue("linkpats")->load()) {
             int currrespattern = state.hasProperty("currrespattern")
-                ? state.getProperty("currrespattern")
+                ? (int)state.getProperty("currrespattern")
                 : (int)params.getRawParameterValue("respattern")->load();
             queueResPattern(currrespattern);
             param = params.getParameter("respattern");
