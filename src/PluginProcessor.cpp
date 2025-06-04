@@ -745,7 +745,7 @@ void FILTRAudioProcessor::onSlider()
         float avg = (float)pattern->getavgY();
         float cut = params.getParameter("cutoff")->getValue(); 
         if (avg != cut) {
-            params.getParameter("cutoff")->setValueNotifyingHost(avg);
+            //params.getParameter("cutoff")->setValueNotifyingHost(avg);
             lcutoff = (double)params.getRawParameterValue("cutoff")->load();
         }
         cutoffDirty = false;
@@ -756,7 +756,7 @@ void FILTRAudioProcessor::onSlider()
         float avg = (float)respattern->getavgY();
         float rval = params.getParameter("res")->getValue();
         if (avg != rval) {
-            params.getParameter("res")->setValueNotifyingHost(avg);
+            //params.getParameter("res")->setValueNotifyingHost(avg);
             lres = (double)params.getRawParameterValue("res")->load();
         }
         resDirty = false;
