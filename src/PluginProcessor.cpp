@@ -132,8 +132,6 @@ FILTRAudioProcessor::FILTRAudioProcessor()
     value = new RCSmoother();
     resvalue = new RCSmoother();
 
-    updateCutoffFromPattern();
-    updateResFromPattern();
     loadSettings();
 }
 
