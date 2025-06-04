@@ -284,16 +284,16 @@ void Pattern::loadRandom(int grid) {
 
 void Pattern::copy()
 {
-  copy_pattern = points;
+    copy_pattern = points;
 }
 
 void Pattern::paste()
 {
-  std::lock_guard<std::mutex> lock(pointsmtx);
-  if (copy_pattern.size() > 0) {
-    points = copy_pattern;
-    incrementVersion();
-  }
+    std::lock_guard<std::mutex> lock(pointsmtx);
+    if (copy_pattern.size() > 0) {
+      points = copy_pattern;
+      incrementVersion();
+    }
 }
 
 void Pattern::transform(double midy)
@@ -302,30 +302,30 @@ void Pattern::transform(double midy)
         std::lock_guard<std::mutex> lock(pointsmtx);
         midy = 1.0 - midy; // y coordinates are inverted
         clearY = midy;
-        if (rawpoints.empty()) rawpoints = points;
-        if (!rawpoints.size()) {
-            buildSegments();
-            return;
-        };
 
-        double avg = 0.0;
-        for (auto& p : rawpoints) {
-            avg += p.y;
-        }
-        avg /= points.size();
-
-        if (avg <= midy) {
-            if (avg == 1.0) avg -= 1e-10;
-            double alpha = (midy - avg) / (1.0 - avg);
-            for (int i = 0; i < points.size(); i++) {
-                points[i].y = rawpoints[i].y + alpha * (1 - rawpoints[i].y);
-            }
+        if (rawpoints.empty()) {
+            rawpoints = points;
         }
         else {
-            if (avg == 0.0) avg += 1e-10;
-            double beta = (avg - midy) / avg;
-            for (int i = 0; i < points.size(); i++) {
-                points[i].y = (1.0 - beta) * rawpoints[i].y;
+            double avg = 0.0;
+            for (auto& p : rawpoints) {
+                avg += p.y;
+            }
+            avg /= points.size();
+
+            if (avg <= midy) {
+                if (avg == 1.0) avg -= 1e-10;
+                double alpha = (midy - avg) / (1.0 - avg);
+                for (int i = 0; i < points.size(); i++) {
+                    points[i].y = rawpoints[i].y + alpha * (1 - rawpoints[i].y);
+                }
+            }
+            else {
+                if (avg == 0.0) avg += 1e-10;
+                double beta = (avg - midy) / avg;
+                for (int i = 0; i < points.size(); i++) {
+                    points[i].y = (1.0 - beta) * rawpoints[i].y;
+                }
             }
         }
     }
@@ -541,14 +541,16 @@ void Pattern::undo()
     if (undoStack.empty())
         return;
 
-    std::lock_guard<std::mutex> lock(pointsmtx);
-    clearTransform();
+    {
+        std::lock_guard<std::mutex> lock(pointsmtx);
+        clearTransform();
 
-    redoStack.push_back(points);
-    points = undoStack.back();
-    undoStack.pop_back();
+        redoStack.push_back(points);
+        points = undoStack.back();
+        undoStack.pop_back();
 
-    incrementVersion();
+        incrementVersion();
+    }
     buildSegments();
 }
 
@@ -556,15 +558,16 @@ void Pattern::redo()
 {
     if (redoStack.empty())
         return;
+    {
+        std::lock_guard<std::mutex> lock(pointsmtx);
+        clearTransform();
 
-    std::lock_guard<std::mutex> lock(pointsmtx);
-    clearTransform();
+        undoStack.push_back(points);
+        points = redoStack.back();
+        redoStack.pop_back();
 
-    undoStack.push_back(points);
-    points = redoStack.back();
-    redoStack.pop_back();
-
-    incrementVersion();
+        incrementVersion();
+    }
     buildSegments();
 }
 
