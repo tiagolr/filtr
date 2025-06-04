@@ -11,14 +11,16 @@ using namespace globals;
 class Utils
 {
 public:
+    inline static constexpr double LOG_MAX_OVER_MIN_FREQ = 7.005335607321001; // log(F_MAX_FREQ / F_MIN_FREQ)
+
     inline static double normalToFreq(double norm)
     {
-        return F_MIN_FREQ * std::exp(norm * std::log(F_MAX_FREQ / F_MIN_FREQ));
+        return F_MIN_FREQ * std::exp(norm * LOG_MAX_OVER_MIN_FREQ);
     }
 
     inline static double freqToNormal(double norm)
     {
-        return std::log(norm / F_MIN_FREQ) / std::log(F_MAX_FREQ / F_MIN_FREQ);
+        return std::log(norm / F_MIN_FREQ) / LOG_MAX_OVER_MIN_FREQ;
     }
 
     inline static double gainTodB(double gain)
