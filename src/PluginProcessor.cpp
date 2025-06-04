@@ -743,16 +743,22 @@ void FILTRAudioProcessor::onSlider()
 
     if (cutoffDirty) {
         float avg = (float)pattern->getavgY();
-        params.getParameter("cutoff")->setValueNotifyingHost(avg);
-        lcutoff = (double)params.getRawParameterValue("cutoff")->load();
+        float cut = params.getParameter("cutoff")->getValue(); 
+        if (avg != cut) {
+            params.getParameter("cutoff")->setValueNotifyingHost(avg);
+            lcutoff = (double)params.getRawParameterValue("cutoff")->load();
+        }
         cutoffDirty = false;
         cutoffDirtyCooldown = 5; // ignore cutoff updates for 5 blocks
     }
 
     if (resDirty) {
         float avg = (float)respattern->getavgY();
-        params.getParameter("res")->setValueNotifyingHost(avg);
-        lres = (double)params.getRawParameterValue("res")->load();
+        float rval = params.getParameter("res")->getValue();
+        if (avg != rval) {
+            params.getParameter("res")->setValueNotifyingHost(avg);
+            lres = (double)params.getRawParameterValue("res")->load();
+        }
         resDirty = false;
         resDirtyCooldown = 5;
     }
