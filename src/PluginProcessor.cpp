@@ -132,6 +132,11 @@ FILTRAudioProcessor::FILTRAudioProcessor()
     value = new RCSmoother();
     resvalue = new RCSmoother();
 
+    // these are called in multiple starting places like prepareToPlay, setProgramState and here
+    // the goal is to trick Logics AU validation to pass without the ERROR: Parameter did not retain set value when Initialized
+    updatePatternFromCutoff();
+    updatePatternFromRes();
+
     loadSettings();
 }
 
@@ -520,6 +525,9 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         maxLatencyBlocks += 1;
     }
 
+    updatePatternFromCutoff();
+    updatePatternFromRes();
+
     lpFilterL.clear(0.0);
     lpFilterR.clear(0.0);
     hpFilterL.clear(0.0);
@@ -745,7 +753,7 @@ void FILTRAudioProcessor::onSlider()
         float avg = (float)pattern->getavgY();
         float cut = params.getParameter("cutoff")->getValue(); 
         if (avg != cut) {
-            //params.getParameter("cutoff")->setValueNotifyingHost(avg);
+            params.getParameter("cutoff")->setValueNotifyingHost(avg);
             lcutoff = (double)params.getRawParameterValue("cutoff")->load();
         }
         cutoffDirty = false;
@@ -756,7 +764,7 @@ void FILTRAudioProcessor::onSlider()
         float avg = (float)respattern->getavgY();
         float rval = params.getParameter("res")->getValue();
         if (avg != rval) {
-            //params.getParameter("res")->setValueNotifyingHost(avg);
+            params.getParameter("res")->setValueNotifyingHost(avg);
             lres = (double)params.getRawParameterValue("res")->load();
         }
         resDirty = false;
@@ -780,7 +788,7 @@ void FILTRAudioProcessor::onSlider()
         lres = res;
     } 
     else if (res != lres) {
-        updateResPatternFromRes();
+        updatePatternFromRes();
         lres = res;
     }
 
@@ -812,7 +820,7 @@ void FILTRAudioProcessor::updatePatternFromCutoff()
     pattern->transform(cutnorm);
 }
 
-void FILTRAudioProcessor::updateResPatternFromRes()
+void FILTRAudioProcessor::updatePatternFromRes()
 {
     double resnorm = (double)params.getParameter("res")->getValue();
     respattern->transform(resnorm);
@@ -1807,8 +1815,8 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
             respatterns[i]->buildSegments();
         }
 
-        updateCutoffFromPattern();
-        updateResFromPattern();
+        updatePatternFromRes();
+        updatePatternFromCutoff();
 
         if (state.hasProperty("seqcells")) {
             auto str = state.getProperty("seqcells").toString().toStdString();

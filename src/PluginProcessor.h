@@ -281,7 +281,7 @@ public:
     //==============================================================================
     void onSlider ();
     void updatePatternFromCutoff();
-    void updateResPatternFromRes();
+    void updatePatternFromRes();
     void updateCutoffFromPattern();
     void updateResFromPattern();
     void onTensionChange();
