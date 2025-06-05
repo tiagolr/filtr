@@ -121,6 +121,7 @@ public:
     bool alwaysPlaying = false;
     bool dualSmooth = true; // use either single smooth or attack and release
     bool dualTension = false;
+    int midiTriggerChn = 0;
     int triggerChn = 9; // Midi pattern trigger channel, defaults to channel 10
     int triggerResChn = 10; // Midi trigger channel for resonance
     bool useMonitor = false;

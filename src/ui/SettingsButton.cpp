@@ -23,6 +23,13 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 	uiScale.addItem(4, "175%", true, audioProcessor.scale == 1.75f);
 	uiScale.addItem(5, "200%", true, audioProcessor.scale == 2.0f);
 
+	PopupMenu midiTriggerChn;
+	midiTriggerChn.addItem(2010, "Off", true, audioProcessor.midiTriggerChn == -1);
+	for (int i = 0; i < 16; i++) {
+		midiTriggerChn.addItem(2010 + i + 1, String(i + 1), true, audioProcessor.midiTriggerChn == i);
+	}
+	midiTriggerChn.addItem(2027, "Any", true, audioProcessor.midiTriggerChn == 16);
+
 	PopupMenu triggerChn;
 	triggerChn.addItem(10, "Off", true, audioProcessor.triggerChn == -1);
 	for (int i = 0; i < 16; i++) {
@@ -84,6 +91,7 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 	PopupMenu options;
 	options.addSubMenu("Filter lerp", lerp);
 	options.addSubMenu("Output", output);
+	options.addSubMenu("MIDI triger chn", midiTriggerChn);
 	options.addSubMenu("Cut trigger chn", triggerChn);
 	options.addSubMenu("Res trigger chn", triggerResChn);
 	options.addSubMenu("Audio trigger", audioTrigger);
@@ -185,6 +193,9 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 			}
 			else if (result >= 11140 && result <= 11157) { // Trigger res channel
 				audioProcessor.triggerResChn = result - 11140 - 1;
+			}
+			else if (result >= 2010 && result <= 2027) {
+				audioProcessor.midiTriggerChn = result - 2010 - 1;
 			}
 			else if (result == 30) { // Dual smooth
 				audioProcessor.dualSmooth = !audioProcessor.dualSmooth;

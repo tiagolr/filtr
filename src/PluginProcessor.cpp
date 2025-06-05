@@ -1377,7 +1377,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                         auto patidx = msg.note % 12;
                         queuePattern(patidx + 1);
                     }
-                    else if (msg.channel == triggerResChn || triggerResChn == 16) {
+                    if (msg.channel == triggerResChn || triggerResChn == 16) {
                         auto patidx = msg.note % 12;
                         bool linkpats = (bool)params.getRawParameterValue("linkpats")->load();
                         if (linkpats)
@@ -1385,7 +1385,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                         else
                             queueResPattern(patidx + 1);
                     }
-                    else if (trigger == Trigger::MIDI) {
+                    if (trigger == Trigger::MIDI && (msg.channel == midiTriggerChn || midiTriggerChn == 16)) {
                         clearWaveBuffers();
                         midiTrigger = !alwaysPlaying;
                         trigpos = 0.0;
@@ -1662,6 +1662,7 @@ void FILTRAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("alwaysPlaying",alwaysPlaying, nullptr);
     state.setProperty("dualSmooth",dualSmooth, nullptr);
     state.setProperty("dualTension",dualTension, nullptr);
+    state.setProperty("midiTriggerChn", midiTriggerChn, nullptr);
     state.setProperty("triggerChn",triggerChn, nullptr);
     state.setProperty("triggerResChn",triggerResChn, nullptr);
     state.setProperty("useSidechain",useSidechain, nullptr);
@@ -1762,6 +1763,7 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
         cutenvAutoRel = (bool)state.getProperty("cutenvAutoRel");
         resenvSidechain = (bool)state.getProperty("resenvSidechain");
         resenvAutoRel = (bool)state.getProperty("resenvAutoRel");
+        midiTriggerChn = (int)state.getProperty("midiTriggerChn");
         linkSeqToGrid = state.hasProperty("linkSeqToGrid") ? (bool)state.getProperty("linkSeqToGrid") : true;
 
         int currpattern = state.hasProperty("currpattern")
