@@ -1229,7 +1229,6 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             });
         }
     }
-    midiMessages.clear();
 
     // Process midi out queue
     for (auto it = midiOut.begin(); it != midiOut.end();) {
