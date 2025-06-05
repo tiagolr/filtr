@@ -147,6 +147,7 @@ public:
     int64_t queuedPatternCountdown = 0; // samples counter until queued pattern is applied
     int queuedResPattern = 0; // queued pat index, 0 = off
     int64_t queuedResPatternCountdown = 0; // samples counter until queued pattern is applied
+    bool queuedMidiTrigger = false;
     double xpos = 0.0; // envelope x pos (0..1)
     double ypos = 0.0; // envelope y pos (0..1)
     double yres = 0.0; // resonance envelope y pos
@@ -267,6 +268,7 @@ public:
     void restorePaintPatterns();
     void resetFilters(double srate);
     void setResonanceEditMode(bool isResonance);
+    void startMidiTrigger();
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;

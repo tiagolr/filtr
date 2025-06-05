@@ -296,6 +296,16 @@ void FILTRAudioProcessor::setResonanceEditMode(bool isResonance)
     });
 }
 
+void FILTRAudioProcessor::startMidiTrigger()
+{
+    double phase = (double)params.getRawParameterValue("phase")->load();
+    clearWaveBuffers();
+    midiTrigger = !alwaysPlaying;
+    trigpos = 0.0;
+    trigphase = phase;
+    restartEnv(true);
+}
+
 void FILTRAudioProcessor::setUIMode(UIMode mode)
 {
     MessageManager::callAsync([this, mode]() {
@@ -1386,11 +1396,12 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                             queueResPattern(patidx + 1);
                     }
                     if (trigger == Trigger::MIDI && (msg.channel == midiTriggerChn || midiTriggerChn == 16)) {
-                        clearWaveBuffers();
-                        midiTrigger = !alwaysPlaying;
-                        trigpos = 0.0;
-                        trigphase = phase;
-                        restartEnv(true);
+                        if (queuedResPattern || queuedPattern) {
+                            queuedMidiTrigger = true;
+                        }
+                        else {
+                            startMidiTrigger();
+                        }
                     }
                 }
             }
@@ -1415,6 +1426,9 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 updateCutoffFromPattern();
                 MessageManager::callAsync([this]() { sendChangeMessage();});
                 queuedPattern = 0;
+                if (queuedMidiTrigger) {
+                    startMidiTrigger();
+                }
             }
             if (queuedPatternCountdown > 0) {
                 queuedPatternCountdown -= 1;
@@ -1439,6 +1453,9 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 updateResFromPattern();
                 MessageManager::callAsync([this]() {sendChangeMessage();});
                 queuedResPattern = 0;
+                if (queuedMidiTrigger) {
+                    startMidiTrigger();
+                }
             }
             if (queuedResPatternCountdown > 0) {
                 queuedResPatternCountdown -= 1;
