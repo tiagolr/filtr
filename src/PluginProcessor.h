@@ -218,6 +218,8 @@ public:
     // PlayHead state
     bool playing = false;
     int64_t timeInSamples = 0;
+    int cutOversampleCounter = 0;
+    int resOversampleCounter = 0;
     double beatPos = 0.0; // position in quarter notes
     double ratePos = 0.0; // position in hertz
     double ppqPosition = 0.0;

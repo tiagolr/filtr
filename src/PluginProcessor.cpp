@@ -1056,7 +1056,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             if (auto tempo = pos->getBpm()) {
                 beatsPerSecond = *tempo / 60.0;
                 beatsPerSample = *tempo / (60.0 * srate * samplingFactor);
-                samplesPerBeat = (int)((60.0 / *tempo) * srate * samplingFactor);
+                samplesPerBeat = (int)((60.0 / *tempo) * srate);
                 secondsPerBeat = 60.0 / *tempo;
             }
             looping = pos->getIsLooping();
@@ -1431,7 +1431,10 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 }
             }
             if (queuedPatternCountdown > 0) {
-                queuedPatternCountdown -= 1;
+                if (++cutOversampleCounter >= samplingFactor) {
+                    cutOversampleCounter = 0;
+                    queuedPatternCountdown -= 1;
+                }
             }
         }
 
@@ -1458,7 +1461,10 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 }
             }
             if (queuedResPatternCountdown > 0) {
-                queuedResPatternCountdown -= 1;
+                if (++resOversampleCounter >= samplingFactor) {
+                    resOversampleCounter = 0;
+                    queuedResPatternCountdown -= 1;
+                }
             }
         }
 
@@ -1630,8 +1636,6 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         yenv.store(resonanceEditMode ? yres : ypos);
         beatPos += beatsPerSample;
         ratePos += 1 / (srate * samplingFactor) * ratehz;
-        if (playing)
-            timeInSamples += 1;
 
     } // ============================================== END OF SAMPLES PROCESSING 
 
