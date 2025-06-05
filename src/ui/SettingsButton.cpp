@@ -91,7 +91,7 @@ void SettingsButton::mouseDown(const juce::MouseEvent& e)
 	PopupMenu options;
 	options.addSubMenu("Filter lerp", lerp);
 	options.addSubMenu("Output", output);
-	options.addSubMenu("MIDI triger chn", midiTriggerChn);
+	options.addSubMenu("MIDI trigger chn", midiTriggerChn);
 	options.addSubMenu("Cut trigger chn", triggerChn);
 	options.addSubMenu("Res trigger chn", triggerResChn);
 	options.addSubMenu("Audio trigger", audioTrigger);

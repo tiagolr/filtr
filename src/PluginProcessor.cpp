@@ -1427,6 +1427,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 MessageManager::callAsync([this]() { sendChangeMessage();});
                 queuedPattern = 0;
                 if (queuedMidiTrigger) {
+                    queuedMidiTrigger = false;
                     startMidiTrigger();
                 }
             }
@@ -1457,6 +1458,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 MessageManager::callAsync([this]() {sendChangeMessage();});
                 queuedResPattern = 0;
                 if (queuedMidiTrigger) {
+                    queuedMidiTrigger = false;
                     startMidiTrigger();
                 }
             }
