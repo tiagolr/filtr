@@ -482,6 +482,7 @@ void FILTRAudioProcessor::loadProgram (int index)
     }
     else {
         loadPreset(*pattern, index - 1);
+        loadPreset(*respattern, index - 1);
     }
 
     updateCutoffFromPattern();
