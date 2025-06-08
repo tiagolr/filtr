@@ -19,6 +19,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     audioProcessor.params.addParameterListener("trigger", this);
     audioProcessor.params.addParameterListener("cutenvon", this);
     audioProcessor.params.addParameterListener("resenvon", this);
+    audioProcessor.params.addParameterListener("linkpats", this);
 
     auto col = PLUG_PADDING;
     auto row = PLUG_PADDING;
@@ -612,6 +613,7 @@ FILTRAudioProcessorEditor::~FILTRAudioProcessorEditor()
     audioProcessor.params.removeParameterListener("trigger", this);
     audioProcessor.params.removeParameterListener("cutenvon", this);
     audioProcessor.params.removeParameterListener("resenvon", this);
+    audioProcessor.params.removeParameterListener("linkpats", this);
     audioProcessor.removeChangeListener(this);
 }
 

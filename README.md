@@ -131,9 +131,9 @@ MacOS builds are untested and unsigned, please let me know of any issues by open
 Because the builds are unsigned you may have to run the following commands:
 
 ```bash
-sudo xattr -dr com.apple.quarantine /path/to/your/plugins/filtr.component
-sudo xattr -dr com.apple.quarantine /path/to/your/plugins/filtr.vst3
-sudo xattr -dr com.apple.quarantine /path/to/your/plugins/filtr.lv3
+sudo xattr -dr com.apple.quarantine /path/to/your/plugins/FILT-R.component
+sudo xattr -dr com.apple.quarantine /path/to/your/plugins/FILT-R.vst3
+sudo xattr -dr com.apple.quarantine /path/to/your/plugins/FILT-R.lv2
 ```
 
 The commands above will recursively remove the quarantine flag from the plugins.
