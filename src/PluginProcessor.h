@@ -27,6 +27,7 @@
 #include "ui/Sequencer.h"
 #include "dsp/Utils.h"
 #include "dsp/Follower.h"
+#include "utils/PatternManager.h"
 
 using namespace globals;
 
@@ -41,6 +42,16 @@ struct MidiInMsg {
 struct MidiOutMsg {
     MidiMessage msg;
     int offset;
+};
+
+struct TensionParameters {
+    double tension;
+    double tensionAtk;
+    double tensionRel;
+    bool dualTension;
+
+    TensionParameters(double t = 0.0, double ta = 0.0, double tr = 0.0, bool dual = false)
+        : tension(t), tensionAtk(ta), tensionRel(tr), dualTension(dual) {}
 };
 
 enum Trigger {
@@ -99,7 +110,7 @@ public:
 //==============================================================================
 /**
 */
-class FILTRAudioProcessor  
+class FILTRAudioProcessor
     : public AudioProcessor
     , public AudioProcessorParameter::Listener
     , public ChangeBroadcaster
@@ -329,7 +340,8 @@ public:
     //==============================================================================
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-
+    void exportPatterns();
+    void importPatterns();
     //=========================================================
 
     AudioProcessorValueTreeState params;
@@ -345,6 +357,7 @@ private:
     ApplicationProperties settings;
     std::vector<MidiInMsg> midiIn; // midi buffer used to process midi messages offset
     std::vector<MidiOutMsg> midiOut;
+    PatternManager patternManager;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FILTRAudioProcessor)

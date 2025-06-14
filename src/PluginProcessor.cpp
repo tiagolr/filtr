@@ -285,7 +285,7 @@ void FILTRAudioProcessor::setResonanceEditMode(bool isResonance)
         if (resonanceEditMode == isResonance) return;
         auto seqopen = sequencer->isOpen;
         if (seqopen) sequencer->close();
-        
+
         resonanceEditMode = isResonance;
         if (uimode != UIMode::PaintEdit) {
             viewPattern = resonanceEditMode ? respattern : pattern;
@@ -460,7 +460,7 @@ void FILTRAudioProcessor::loadProgram (int index)
 
     currentProgram = index;
     auto loadPreset = [](Pattern& pat, int idx) {
-        auto preset = pat.index >= 12 
+        auto preset = pat.index >= 12
             ? Presets::getResPreset(idx)
             : Presets::getCutPreset(idx);
         pat.clear();
@@ -682,7 +682,7 @@ void FILTRAudioProcessor::onSlider()
     if (trigger != Trigger::Audio && audioTrigger)
         audioTrigger = false;
 
-    if (trigger != Trigger::Audio && useMonitor) 
+    if (trigger != Trigger::Audio && useMonitor)
         useMonitor = false;
 
     auto tension = (double)params.getRawParameterValue("tension")->load();
@@ -762,7 +762,7 @@ void FILTRAudioProcessor::onSlider()
 
     if (cutoffDirty) {
         float avg = (float)pattern->getavgY();
-        float cut = params.getParameter("cutoff")->getValue(); 
+        float cut = params.getParameter("cutoff")->getValue();
         if (avg != cut) {
             params.getParameter("cutoff")->setValueNotifyingHost(avg);
             lcutoff = (double)params.getRawParameterValue("cutoff")->load();
@@ -784,7 +784,7 @@ void FILTRAudioProcessor::onSlider()
 
     double cutoff = (double)params.getRawParameterValue("cutoff")->load();
     double res = (double)params.getRawParameterValue("res")->load();
-    
+
     // Ignores DAW updates for cutoff which was changed internally
     // DAW param updates are not reliable, on standalone works fine
     if (cutoffDirtyCooldown > 0) {
@@ -797,7 +797,7 @@ void FILTRAudioProcessor::onSlider()
 
     if (resDirtyCooldown > 0) {
         lres = res;
-    } 
+    }
     else if (res != lres) {
         updatePatternFromRes();
         lres = res;
@@ -847,7 +847,7 @@ void FILTRAudioProcessor::updateResFromPattern()
 {
     resDirty = true;
     paramChanged = true;
-} 
+}
 
 void FILTRAudioProcessor::onTensionChange()
 {
@@ -939,7 +939,7 @@ void FILTRAudioProcessor::clearWaveBuffers()
 void FILTRAudioProcessor::clearLatencyBuffers()
 {
     int trigger = (int)params.getRawParameterValue("trigger")->load();
-    auto latency = trigger == Trigger::Audio 
+    auto latency = trigger == Trigger::Audio
         ? (int)std::ceil(getSampleRate() * LATENCY_MILLIS / 1000.0)
         : 0;
     latency *= (int)oversampler.getOversamplingFactor();
@@ -1188,7 +1188,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
 
     // gets envelope followers processed sample for a given oversample buffer index
     // the env followers process the dry audio buffer into a circular buffer
-    // an oversampled samp index matches the followers buffer latency samples ago 
+    // an oversampled samp index matches the followers buffer latency samples ago
     // and has to be downsampled or interpolated in this case
     auto getEnvelopeFollowerOffset = [&](int ossample)->std::array<double, 2> {
         double basePos = ((double)ossample - oslatency) / samplingFactor;
@@ -1220,7 +1220,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         onSlider();
         paramChanged = false;
     }
-   
+
     if (cutoffDirtyCooldown > 0)
         cutoffDirtyCooldown--;
     if (resDirtyCooldown > 0)
@@ -1272,7 +1272,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         ratePos = beatPos * secondsPerBeat * ratehz;
     }
 
-    // audio trigger transient detection and monitoring 
+    // audio trigger transient detection and monitoring
     // direct audio buffer processing, not oversampled
     if (trigger == Audio) {
         for (int sample = 0; sample < numSamples; ++sample) {
@@ -1309,7 +1309,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                 audioTriggerCountdown = (sample + std::max(0, getLatencySamples() + offset)) * samplingFactor;
                 lastHitAmplitude = transDetectorL.hit ? std::fabs(monSampleL) : std::fabs(monSampleR);
                 processMonitorSample(monSampleL, monSampleR, true);
-            } 
+            }
             else {
                 processMonitorSample(monSampleL, monSampleR, false);
             }
@@ -1354,7 +1354,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
                     }
                 }
             }
-            
+
             if (resenvon) {
                 resenvBuf[envwritepos] = resenv.process(
                     resenvSidechain ? lsidesample : lsample,
@@ -1639,7 +1639,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         beatPos += beatsPerSample;
         ratePos += 1 / (srate * samplingFactor) * ratehz;
 
-    } // ============================================== END OF SAMPLES PROCESSING 
+    } // ============================================== END OF SAMPLES PROCESSING
 
     drawSeek.store(playing && (trigger == Trigger::Sync || midiTrigger || audioTrigger)); // informs UI if it should seek or not, typically only during play
     oversampler.processSamplesDown(block);
@@ -1659,7 +1659,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     rmsRight.store(0.8 * rmsRight.load() + 0.2 * (double)buffer.getRMSLevel(audioOutputs > 1 ? 1 : 0, 0, numSamples));
 
     // store last written values
-    // used to reset filters at the beggining of a block 
+    // used to reset filters at the beggining of a block
     lastOutL = buffer.getSample(0, numSamples - 1);
     lastOutR = buffer.getSample(audioOutputs == 1 ? 0 : 1, numSamples - 1);
 }
@@ -1850,8 +1850,8 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
             Cell cell;
             int shape, lshape;
             while (iss >> shape >> lshape >> cell.ptool >> cell.invertx
-                >> cell.minx >> cell.maxx >> cell.miny >> cell.maxy >> cell.tenatt 
-                >> cell.tenrel >> cell.skew) 
+                >> cell.minx >> cell.maxx >> cell.miny >> cell.maxy >> cell.tenatt
+                >> cell.tenrel >> cell.skew)
             {
                 cell.shape = static_cast<CellShape>(shape);
                 cell.lshape = static_cast<CellShape>(lshape);
@@ -1861,6 +1861,27 @@ void FILTRAudioProcessor::setStateInformation (const void* data, int sizeInBytes
     }
 
     setUIMode(Normal);
+}
+
+void FILTRAudioProcessor::importPatterns()
+{
+    if (sequencer->isOpen)
+        sequencer->close();
+
+    auto tensionParams = TensionParameters((double)params.getRawParameterValue("tension")->load(),
+                             (double)params.getRawParameterValue("tensionatk")->load(),
+                             (double)params.getRawParameterValue("tensionrel")->load(), dualTension);
+
+    patternManager.importPatterns(patterns, respatterns, tensionParams);
+    setUIMode(UIMode::Normal);
+}
+
+void FILTRAudioProcessor::exportPatterns()
+{
+    if (sequencer->isOpen)
+        sequencer->close();
+    patternManager.exportPatterns(patterns, respatterns);
+    setUIMode(UIMode::Normal);
 }
 
 //==============================================================================
