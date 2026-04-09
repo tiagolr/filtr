@@ -180,7 +180,7 @@ public:
     bool showLatencyWarning = false;
 
     // Filter State
-    juce::dsp::Oversampling<double> oversampler { 2, 2, juce::dsp::Oversampling<double>::FilterType::filterHalfBandFIREquiripple, true };
+    juce::dsp::Oversampling<double> oversampler { 2, 1, juce::dsp::Oversampling<double>::FilterType::filterHalfBandFIREquiripple, true };
     std::unique_ptr<Filter> lFilter;
     std::unique_ptr<Filter> rFilter;
     FilterType lftype = FilterType::kLinear12;
