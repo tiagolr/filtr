@@ -1,7 +1,7 @@
 #include "Meter.h"
 #include "../PluginProcessor.h"
 
-double gainToScale(double g) 
+double gainToScale(double g)
 {
     return (std::log10(std::max(g, 0.001)) - std::log10(0.001)) / (std::log10(10) - std::log10(0.001));
 }
@@ -50,8 +50,8 @@ void Meter::paint(juce::Graphics& g) {
         : (1.0f - alpha) * rmsRight + alpha * rmsRightRaw;
 
     // FIX
-    if (isinf(rmsLeft)) rmsLeft = 0.;
-    if (isinf(rmsRight)) rmsRight = 0.;
+    if (std::isinf(rmsLeft)) rmsLeft = 0.;
+    if (std::isinf(rmsRight)) rmsRight = 0.;
 
     g.setColour(Colour(COLOR_ACTIVE));
     if (rmsLeft > -60.0)
