@@ -29,6 +29,8 @@ private:
     double gain = 0.0;
     double gainMeter = 0.0;
     double zeroMeter = 0.0;
+    double rmsLeft = 0.0;
+    double rmsRight = 0.0;
     bool mouse_down = false;
     float cur_normed_value = 0.0;
     Point<int> last_mouse_position;

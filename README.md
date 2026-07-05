@@ -145,7 +145,7 @@ The commands above will recursively remove the quarantine flag from the plugins.
 git clone --recurse-submodules https://github.com/tiagolr/filtr.git
 
 # windows
-cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -S . -B ./build
+cmake -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release -S . -B ./build
 
 # linux
 sudo apt update

@@ -1659,8 +1659,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     }
 
     // store rms values to be displayed by the UI
-    rmsLeft.store(0.8 * rmsLeft.load() + 0.2 * (double)buffer.getRMSLevel(0, 0, numSamples));
-    rmsRight.store(0.8 * rmsRight.load() + 0.2 * (double)buffer.getRMSLevel(audioOutputs > 1 ? 1 : 0, 0, numSamples));
+    rmsLeft.store((double)buffer.getMagnitude(0, 0, numSamples));
+    rmsRight.store((double)buffer.getMagnitude(audioOutputs > 1 ? 1 : 0, 0, numSamples));
 
     // store last written values
     // used to reset filters at the beggining of a block

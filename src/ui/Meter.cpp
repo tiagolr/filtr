@@ -40,8 +40,14 @@ void Meter::paint(juce::Graphics& g) {
     g.drawRoundedRectangle(getLocalBounds().expanded(-1,-1).toFloat().translated(0.5f, 0.5f), 3.f, 1.f);
     auto bounds = getLocalBounds().expanded(-4, -4).toFloat().translated(0.5f, 0.5f);
 
-    double rmsLeft = gainToScale(audioProcessor.rmsLeft.load());
-    double rmsRight = gainToScale(audioProcessor.rmsRight.load());
+    double rmsLeftRaw = gainToScale(audioProcessor.rmsLeft.load());
+    double rmsRightRaw = gainToScale(audioProcessor.rmsRight.load());
+
+    constexpr float alpha = 0.15f;
+    rmsLeft = rmsLeft < rmsLeftRaw ? rmsLeftRaw
+        : (1.0f - alpha) * rmsLeft + alpha * rmsLeftRaw;
+    rmsRight = rmsRight < rmsRightRaw ? rmsRightRaw
+        : (1.0f - alpha) * rmsRight + alpha * rmsRightRaw;
 
     g.setColour(Colour(COLOR_ACTIVE));
     if (rmsLeft > -60.0)
