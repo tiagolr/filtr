@@ -18,7 +18,8 @@ enum FilterType
 	kMS20,
 	kTB303,
 	kPhaserPos,
-	kPhaserNeg
+	kPhaserNeg,
+	kTpt
 };
 
 enum FilterPoles
@@ -73,7 +74,7 @@ public:
 	virtual ~Filter() {}
 	virtual void setMode(FilterMode mode_) { mode = mode_; }
 	virtual void setDrive(double norm) { (void)norm; };
-	virtual void setMorph(double norm) { morph = norm; };
+	virtual void setMorph(double norm) { morph = norm; }; // for phaser filter
 
 	virtual void init(double srate, double freq, double qnorm) = 0;
 	virtual void reset(double sample) = 0;

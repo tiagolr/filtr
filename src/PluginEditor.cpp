@@ -358,6 +358,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     filterTypeMenu.addItem("303", 8);
     filterTypeMenu.addItem("Phaser +", 9);
     filterTypeMenu.addItem("Phaser -", 10);
+    filterTypeMenu.addSeparator();
+    filterTypeMenu.addItem("Tpt1", 11);
+    filterTypeMenu.addItem("Tpt2", 12);
+    filterTypeMenu.addItem("Tpt3", 13);
     filterTypeMenu.setBounds(col, row, 75, 25);
     filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "ftype", filterTypeMenu);
     col += 85;

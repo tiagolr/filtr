@@ -19,6 +19,7 @@
 #include "dsp/filter/TB303.h"
 #include "dsp/filter/Phaser.h"
 #include "dsp/filter/RBJ.h"
+#include "dsp/filter/TptWrapper.h"
 #include "dsp/Transient.h"
 #include "dsp/Splitter.h"
 #include "Presets.h"

@@ -46,7 +46,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterInt>("seqstep", "Sequencer Step", 0, (int)std::size(GRID_SIZES)-1, 2),
         std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", juce::NormalisableRange<float> (0.0f, 10.0f, 0.001f, 0.5f), 1.0f),
         // filter params
-        std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-" }, 0),
+        std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-", "Tpt1", "Tpt2", "Tpt3" }, 0),
         std::make_unique<juce::AudioParameterChoice>("fmode", "Filter Mode", StringArray { "Low Pass", "Band Pass", "High Pass", "Band Stop", "Peak" }, 0),
         std::make_unique<juce::AudioParameterFloat>("flerp", "Filter Lerp", juce::NormalisableRange<float> (0.0f, 1.0f), 0.5f),
         std::make_unique<juce::AudioParameterFloat>("fdrive", "Filter Drive", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
@@ -610,6 +610,11 @@ void FILTRAudioProcessor::resetFilters()
     else if (ftype == FilterType::kPhaserNeg) {
         lFilter = std::make_unique<Phaser>(false);
         rFilter = std::make_unique<Phaser>(false);
+    }
+    else if (ftype >= FilterType::kTpt) {
+        int model = ftype - (int)FilterType::kTpt;
+        lFilter = std::make_unique<TptWrapper>(model);
+        rFilter = std::make_unique<TptWrapper>(model);
     }
 
     lFilter->setMode(fmode);
@@ -1717,7 +1722,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             }
 
             applyFilter(sample, ypos, ypos2, yres, yres2, lsample, rsample);
-            
+
             double viewx = (alwaysPlaying || audioTrigger) ? xpos : (trigpos + trigphase) - std::floor(trigpos + trigphase);
             processDisplaySample(sample, viewx, lsample, rsample);
             latpos = (latpos + 1) % latency;
