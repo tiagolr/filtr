@@ -49,6 +49,10 @@ void Meter::paint(juce::Graphics& g) {
     rmsRight = rmsRight < rmsRightRaw ? rmsRightRaw
         : (1.0f - alpha) * rmsRight + alpha * rmsRightRaw;
 
+    // FIX
+    if (isinf(rmsLeft)) rmsLeft = 0.;
+    if (isinf(rmsRight)) rmsRight = 0.;
+
     g.setColour(Colour(COLOR_ACTIVE));
     if (rmsLeft > -60.0)
         g.fillRect(bounds.withTrimmedBottom(bounds.getHeight() / 2).withRight(bounds.getWidth() * (float)rmsLeft));

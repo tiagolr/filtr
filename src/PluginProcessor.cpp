@@ -531,6 +531,10 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     oversampler.initProcessing(samplesPerBlock);
     oversampler.reset();
 
+    doubleBuffer.setSize(2, samplesPerBlock);
+    lowBuffer.setSize(2, samplesPerBlock);
+    highBuffer.setSize(2, samplesPerBlock);
+
     int trigger = (int)params.getRawParameterValue("trigger")->load();
     setLatencySamples(trigger == Trigger::Audio
         ? (int)std::ceil(oversampler.getLatencyInSamples() + sampleRate * LATENCY_MILLIS / 1000.0)
@@ -554,12 +558,12 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     transDetectorL.clear(sampleRate);
     transDetectorR.clear(sampleRate);
     std::fill(monSamples.begin(), monSamples.end(), 0.0);
-    resetFilters(sampleRate);
+    resetFilters();
     clearLatencyBuffers();
     onSlider();
 }
 
-void FILTRAudioProcessor::resetFilters(double srate)
+void FILTRAudioProcessor::resetFilters()
 {
     auto ftype = (FilterType)(int)params.getRawParameterValue("ftype")->load();
     auto fmode = (FilterMode)(int)params.getRawParameterValue("fmode")->load();
@@ -663,7 +667,6 @@ bool FILTRAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) co
 void FILTRAudioProcessor::onSlider()
 {
     onSmoothChange();
-    auto srate = getSampleRate();
 
     int trigger = (int)params.getRawParameterValue("trigger")->load();
     if (trigger != ltrigger) {
@@ -739,7 +742,7 @@ void FILTRAudioProcessor::onSlider()
     auto fmorph = (double)params.getRawParameterValue("fmorph")->load();
 
     if (lftype != ftype) {
-        resetFilters(srate);
+        resetFilters();
         lFilter->reset(lastOutL); // prevent popping when changing filters
         rFilter->reset(lastOutR);
         lftype = ftype;
@@ -833,6 +836,11 @@ void FILTRAudioProcessor::onSlider()
         double resenvHighCut = (double)params.getRawParameterValue("resenvhighcut")->load();
         resenv.prepare(srate, thresh, resenvAutoRel, attack, 0.0, release, resenvLowCut, resenvHighCut);
     }
+
+    float splitLow = params.getRawParameterValue("split_low")->load();
+    float splitHigh = params.getRawParameterValue("split_high")->load();
+    int splitSlope = (int)params.getRawParameterValue("split_slope")->load();
+    splitter.setFreqs((float)srate, splitLow, splitHigh, splitSlope);
 }
 
 void FILTRAudioProcessor::updatePatternFromCutoff()
@@ -880,6 +888,7 @@ void FILTRAudioProcessor::onPlay()
     clearLatencyBuffers();
     resenv.clear();
     cutenv.clear();
+    splitter.clear();
     std::fill(cutenvBuf.begin(), cutenvBuf.end(), 0.0);
     std::fill(resenvBuf.begin(), resenvBuf.end(), 0.0);
     envwritepos = 0;
@@ -897,7 +906,6 @@ void FILTRAudioProcessor::onPlay()
     trigphase = phase;
 
     audioTriggerCountdown = -1;
-    double srate = getSampleRate();
     transDetectorL.clear(srate);
     transDetectorR.clear(srate);
 
@@ -1060,11 +1068,11 @@ template <typename FloatType>
 void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals disableDenormals;
-    double srate = getSampleRate();
+    srate = getSampleRate();
     int samplesPerBlock = getBlockSize();
     int samplingFactor = (int)oversampler.getOversamplingFactor();
     int oslatency = (int)std::ceil(oversampler.getLatencyInSamples());
-    double ossrate = srate * samplingFactor;
+    ossrate = srate * samplingFactor;
     bool looping = false;
     double loopStart = 0.0;
     double loopEnd = 0.0;
@@ -1110,12 +1118,31 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
         return;
 
     // Prepare a double buffer for processing
-    juce::AudioBuffer<double> doubleBuffer(2, numSamples);
     for (int channel = 0; channel < 2; ++channel) {
         auto* src = buffer.getReadPointer(audioInputs > 1 ? channel : 0);
         auto* dst = doubleBuffer.getWritePointer(channel);
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
             dst[sample] = static_cast<double>(src[sample]);
+    }
+
+    // frequency splitting
+    // buffer will contain the mid frequency (splitted)
+    // lowBuffer and highBuffer will contain the excluded frequencies to be summed at the end
+    bool splitterActive = splitter.active;
+    if (splitterActive) {
+        int splitSlope = (int)params.getRawParameterValue("split_slope")->load();
+        splitter.processBlock(
+            splitSlope,
+            doubleBuffer.getReadPointer(0),
+            doubleBuffer.getReadPointer(audioInputs > 1 ? 1 : 0),
+            lowBuffer.getWritePointer(0),
+            lowBuffer.getWritePointer(1),
+            doubleBuffer.getWritePointer(0),
+            doubleBuffer.getWritePointer(audioInputs > 1 ? 1 : 0),
+            highBuffer.getWritePointer(0),
+            highBuffer.getWritePointer(1),
+            numSamples
+        );
     }
 
     // Oversample the double buffer
@@ -1591,7 +1618,7 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
             auto rsample = (double)upsampledBlock.getSample(1 % audioInputs, sample);
             double viewx = (alwaysPlaying || midiTrigger) ? xpos : (trigpos + trigphase) - std::floor(trigpos + trigphase);
             applyFilter(sample, ypos, ypos2, yres, yres2, lsample, rsample);
-            processDisplaySample(sample, xpos, lsample, rsample);
+            processDisplaySample(sample, viewx, lsample, rsample);
         }
 
         // Audio mode
@@ -1711,6 +1738,34 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
 
     drawSeek.store(playing && (trigger == Trigger::Sync || midiTrigger || audioTrigger)); // informs UI if it should seek or not, typically only during play
     oversampler.processSamplesDown(block);
+
+    // if frequency splitting, add back the excluded frequencies
+    if (splitterActive) {
+        doubleBuffer.addFrom(0, 0, lowBuffer, 0, 0, numSamples);
+        doubleBuffer.addFrom(0, 0, highBuffer, 0, 0, numSamples);
+        if (audioInputs > 1) {
+            doubleBuffer.addFrom(1, 0, lowBuffer, 1, 0, numSamples);
+            doubleBuffer.addFrom(1, 0, highBuffer, 1, 0, numSamples);
+        }
+    }
+
+    // prepare FFT buffer for band splitter display
+    if (showBandsEditor) {
+        auto* ch0 = buffer.getReadPointer(0);
+        auto* ch1 = buffer.getReadPointer(audioInputs > 1 ? 1 : 0);
+
+        for (int i = 0; i < numSamples; ++i) {
+            bandsFFTBuffer[bandsFFTWriteIndex++] =
+                static_cast<float>((ch0[i] + ch1[i]) * static_cast<FloatType>(0.5));
+
+            bandsFFTWriteIndex %= bandsFFTBuffer.size();
+        }
+
+        bandsFFTReady.store(true, std::memory_order_release);
+    }
+    else {
+        std::fill(bandsFFTBuffer.begin(), bandsFFTBuffer.end(), 0.f);
+    }
 
     // write processed buffer into the output unless the user is monitoring some input like dry signal or sidechain
     if (!useMonitor && !(cutenvon && cutenvMonitor) && !(resenvon && resenvMonitor)) {

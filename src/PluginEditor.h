@@ -24,6 +24,7 @@
 #include "ui/EnvelopeWidget.h"
 #include "ui/Meter.h"
 #include "ui/AudioWidget.h"
+#include "ui/BandsWidget.h"
 
 using namespace globals;
 
@@ -43,10 +44,10 @@ public:
     void drawChain(Graphics&g, Rectangle<int> boudns, Colour color, Colour bg);
     void drawUndoButton(Graphics& g, juce::Rectangle<float> area, bool invertx, Colour color);
     void drawPowerButton(Graphics& g, Rectangle<float> area, Colour color);
+    FILTRAudioProcessor& audioProcessor;
 
 private:
     bool init = false;
-    FILTRAudioProcessor& audioProcessor;
     CustomLookAndFeel* customLookAndFeel = nullptr;
     std::unique_ptr<About> about;
 
@@ -69,6 +70,8 @@ private:
     std::unique_ptr<TextDial> mixDial;
     std::unique_ptr<EnvelopeWidget> cutenv;
     std::unique_ptr<EnvelopeWidget> resenv;
+    TextButton bandsBtn;
+    std::unique_ptr<BandsWidget> bandsWidget;
 
     std::unique_ptr<Rotary> cutoff;
     std::unique_ptr<Rotary> res;

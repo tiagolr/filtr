@@ -20,6 +20,7 @@
 #include "dsp/filter/Phaser.h"
 #include "dsp/filter/RBJ.h"
 #include "dsp/Transient.h"
+#include "dsp/Splitter.h"
 #include "Presets.h"
 #include <atomic>
 #include <deque>
@@ -154,6 +155,10 @@ public:
     Pattern* viewPattern; // pattern being edited on the view, usually the audio pattern but can also be a paint mode pattern
     Pattern* viewSubPattern; // secondary pattern drawn on view, usually the resonance pattern
     Sequencer* sequencer;
+    Splitter splitter;
+    AudioBuffer<double> doubleBuffer;
+    AudioBuffer<double> lowBuffer; // used for freq splitting
+    AudioBuffer<double> highBuffer; // used for freq splitting
     int queuedPattern = 0; // queued pat index, 0 = off
     int64_t queuedPatternCountdown = 0; // samples counter until queued pattern is applied
     int queuedResPattern = 0; // queued pat index, 0 = off
@@ -232,6 +237,8 @@ public:
     bool resenvAutoRel = true;
 
     // PlayHead state
+    double srate = 44100.0;
+    double ossrate = 88200.0;
     bool playing = false;
     int64_t timeInSamples = 0;
     int cutOversampleCounter = 0;
@@ -265,8 +272,12 @@ public:
     bool showSequencer = false;
     bool resonanceEditMode = false;
     bool showEnvelopeKnobs = false;
+    bool showBandsEditor = false;
     std::atomic<double> rmsLeft = 0.0;
     std::atomic<double> rmsRight = 0.0;
+    size_t bandsFFTWriteIndex = 0;
+    std::array<float, (1 << BANDS_FFT_ORDER) * 2> bandsFFTBuffer{};
+    std::atomic<bool> bandsFFTReady = false;
 
     //==============================================================================
     FILTRAudioProcessor();
@@ -287,7 +298,7 @@ public:
     Pattern* getPaintPatern(int index);
     void setViewPattern(int index);
     void restorePaintPatterns();
-    void resetFilters(double srate);
+    void resetFilters();
     void setResonanceEditMode(bool isResonance);
     void startMidiTrigger();
 

@@ -20,6 +20,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     audioProcessor.params.addParameterListener("cutenvon", this);
     audioProcessor.params.addParameterListener("resenvon", this);
     audioProcessor.params.addParameterListener("linkpats", this);
+    audioProcessor.params.addParameterListener("split_low", this);
+    audioProcessor.params.addParameterListener("split_high", this);
 
     auto col = PLUG_PADDING;
     auto row = PLUG_PADDING;
@@ -120,9 +122,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     audioSettingsButton.setBounds(col, row, 25, 25);
     audioSettingsButton.onClick = [this]() {
         audioProcessor.showAudioKnobs = !audioProcessor.showAudioKnobs;
-        if (audioProcessor.showAudioKnobs) {
+        if (audioProcessor.showAudioKnobs)
             audioProcessor.showEnvelopeKnobs = false;
-        }
+        audioProcessor.showBandsEditor = false;
         toggleUIComponents();
     };
     audioSettingsButton.setAlpha(0.0f);
@@ -242,6 +244,16 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     stereoSlider.setTextBoxStyle(Slider::NoTextBox, true, 10, 10);
     stereoSlider.setVelocityBasedMode(true);
 
+    addAndMakeVisible(bandsBtn);
+    bandsBtn.setComponentID("button");
+    bandsBtn.setBounds(stereoSlider.getBounds().reduced(5,0).translated(stereoSlider.getWidth() + 10, 0));
+    bandsBtn.setButtonText("Bands");
+    bandsBtn.onClick = [this]
+        {
+            audioProcessor.showBandsEditor = !audioProcessor.showBandsEditor;
+            toggleUIComponents();
+        };
+
     // KNOBS ROW
     row += 35;
     col = PLUG_PADDING;
@@ -324,7 +336,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     resenv = std::make_unique<EnvelopeWidget>(p, true, b.getWidth());
     addAndMakeVisible(*resenv);
     resenv->setBounds(b.expanded(0,5));
-    
+
+    bandsWidget = std::make_unique<BandsWidget>(*this);
+    addChildComponent(bandsWidget.get());
+    bandsWidget->setBounds(PLUG_PADDING + 75 * 6, row, 75 * 2 + 10, 65);
 
     // 3RD ROW
     col = PLUG_PADDING;
@@ -372,9 +387,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     cutEnvButton.setBounds(col-90, row, 90, 25);
     cutEnvButton.onClick = [this]() {
         audioProcessor.showEnvelopeKnobs = !audioProcessor.showEnvelopeKnobs;
-        if (audioProcessor.showEnvelopeKnobs && audioProcessor.showAudioKnobs) {
+        if (audioProcessor.showEnvelopeKnobs && audioProcessor.showAudioKnobs)
             audioProcessor.showAudioKnobs = false;
-        }
+        audioProcessor.showBandsEditor = false;
         toggleUIComponents();
     };
 
@@ -384,9 +399,9 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     resEnvButton.setBounds(col-90, row, 90, 25);
     resEnvButton.onClick = [this]() {
         audioProcessor.showEnvelopeKnobs = !audioProcessor.showEnvelopeKnobs;
-        if (audioProcessor.showEnvelopeKnobs && audioProcessor.showAudioKnobs) {
+        if (audioProcessor.showEnvelopeKnobs && audioProcessor.showAudioKnobs)
             audioProcessor.showAudioKnobs = false;
-        }
+        audioProcessor.showBandsEditor = false;
         toggleUIComponents();
     };
     col -= 100;
@@ -627,6 +642,8 @@ FILTRAudioProcessorEditor::~FILTRAudioProcessorEditor()
     audioProcessor.params.removeParameterListener("cutenvon", this);
     audioProcessor.params.removeParameterListener("resenvon", this);
     audioProcessor.params.removeParameterListener("linkpats", this);
+    audioProcessor.params.removeParameterListener("split_low", this);
+    audioProcessor.params.removeParameterListener("split_high", this);
     audioProcessor.removeChangeListener(this);
 }
 
@@ -755,6 +772,8 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 
     cutenv->layoutComponents();
     resenv->layoutComponents();
+
+    bandsWidget->setVisible(audioProcessor.showBandsEditor);
 
     repaint();
 }
@@ -903,6 +922,25 @@ void FILTRAudioProcessorEditor::paint (Graphics& g)
             drawPowerButton(g, bounds, Colour(COLOR_NEUTRAL));
         }
     }
+
+    // band button
+    if (audioProcessor.showBandsEditor) {
+        g.setColour(Colour(COLOR_ACTIVE));
+        g.fillRoundedRectangle(bandsBtn.getBounds().expanded(2).toFloat(), 3.f);
+    }
+    g.setColour(Colour(COLOR_BG));
+    g.fillRoundedRectangle(bandsBtn.getBounds().toFloat(), 3.f);
+    bounds = bandsBtn.getBounds().toFloat().reduced(3.f);
+    float splitLeft = audioProcessor.params.getRawParameterValue("split_low")->load();
+    float splitRight = audioProcessor.params.getRawParameterValue("split_high")->load();
+    const float logMin = std::log(20.f);
+    const float logScale = 1.f / (std::log(20000.f) - logMin);
+    auto lnorm = (std::log(splitLeft) - logMin) * logScale;
+    auto rnorm = (std::log(splitRight) - logMin) * logScale;
+    auto bw = bounds.getWidth();
+    g.setColour(Colour(COLOR_ACTIVE).darker(0.8f));
+    g.fillRect(bounds.getX(), bounds.getY(), bw * lnorm, bounds.getHeight());
+    g.fillRect(bounds.getRight() - bw * (1.f - rnorm), bounds.getY(), bw * (1.f - rnorm), bounds.getHeight());
 }
 
 void FILTRAudioProcessorEditor::drawPowerButton(Graphics& g, Rectangle<float> bounds, Colour color)
@@ -1016,11 +1054,16 @@ void FILTRAudioProcessorEditor::resized()
     resenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
     cutenv->setBounds(resenv->getBounds().withRightX(getWidth() + 10));
 
+    // second row
+    bandsBtn.setBounds(bandsBtn.getBounds().withRightX(getRight() - PLUG_PADDING));
+    stereoSlider.setBounds(stereoSlider.getBounds().withRightX(bandsBtn.getX() - 10));
+
     // 3rd row
     resEnvButton.setBounds(resEnvButton.getBounds().withRightX(col));
     cutEnvButton.setBounds(cutEnvButton.getBounds().withRightX(col));
     cutEnvOnButton.setBounds(cutEnvOnButton.getBounds().withRightX(cutEnvButton.getBounds().getX() - 10));
     resEnvOnButton.setBounds(resEnvOnButton.getBounds().withRightX(resEnvButton.getBounds().getX() - 10));
+    bandsWidget->setBounds(bandsWidget->getBounds().withRightX(getRight() - PLUG_PADDING));
 
     // 4th row
     bounds = snapButton.getBounds();

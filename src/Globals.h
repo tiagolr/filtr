@@ -41,6 +41,7 @@ namespace globals {
 	inline const int POINT_RADIUS = 4;
 	inline const int MPOINT_RADIUS = 3;
 	inline const int MSEL_PADDING = 8;
+	constexpr int BANDS_FFT_ORDER = 12;
 
 	// Envelope follower
 	inline const double ENV_MIN_ATTACK = 0.01;
