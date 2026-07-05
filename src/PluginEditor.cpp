@@ -216,10 +216,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     addAndMakeVisible(patSyncLabel);
     patSyncLabel.setColour(juce::Label::ColourIds::textColourId, Colour(COLOR_NEUTRAL_LIGHT));
     patSyncLabel.setFont(FontOptions(16.0f));
-    patSyncLabel.setText("Pat. Sync", NotificationType::dontSendNotification);
+    patSyncLabel.setText("PSync", NotificationType::dontSendNotification);
     patSyncLabel.setJustificationType(Justification::centredLeft);
-    patSyncLabel.setBounds(col, row, 70, 25);
-    col += 80;
+    patSyncLabel.setBounds(col, row, 55, 25);
+    col += 65;
 
     addAndMakeVisible(patSyncMenu);
     patSyncMenu.setTooltip("Changes pattern in sync with song position during playback");
@@ -233,6 +233,14 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     patSyncMenu.setBounds(col, row, 75, 25);
     patSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "patsync", patSyncMenu);
     
+    addAndMakeVisible(stereoSlider);
+    stereoSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.params, "stereo", stereoSlider);
+    stereoSlider.setComponentID("stereo_slider");
+    stereoSlider.setSliderStyle(Slider::LinearBar);
+    stereoSlider.setBounds(patSyncMenu.getBounds().translated(patSyncMenu.getWidth() + 10, 0));
+    stereoSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    stereoSlider.setTextBoxStyle(Slider::NoTextBox, true, 10, 10);
+    stereoSlider.setVelocityBasedMode(true);
 
     // KNOBS ROW
     row += 35;

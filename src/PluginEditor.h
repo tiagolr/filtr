@@ -63,6 +63,8 @@ private:
     Label patSyncLabel;
     ComboBox patSyncMenu;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> patSyncAttachment;
+    Slider stereoSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> stereoSliderAttachment;
     std::unique_ptr<SettingsButton> settingsButton;
     std::unique_ptr<TextDial> mixDial;
     std::unique_ptr<EnvelopeWidget> cutenv;

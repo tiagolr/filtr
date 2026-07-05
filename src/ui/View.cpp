@@ -327,7 +327,10 @@ void View::drawSeek(Graphics& g)
 {
     auto xpos = audioProcessor.xenv.load();
     auto ypos = audioProcessor.yenv.load();
+    auto xpos2 = audioProcessor.xenv2.load();
+    auto ypos2 = audioProcessor.yenv2.load();
     bool drawSeek = audioProcessor.drawSeek.load();
+    bool drawStereo = audioProcessor.drawStereo.load();
     bool isResPattern = audioProcessor.viewPattern->index >= 12 && audioProcessor.viewPattern->index <= 24;
     
     seekTrail.push_back(Point<double>(xpos * winw + winx, (1.0 - ypos) * winh + winy));
@@ -337,6 +340,10 @@ void View::drawSeek(Graphics& g)
     if (drawSeek) {
         g.setColour(Colour(COLOR_SEEK).withAlpha(0.5f));
         g.drawLine((float)(xpos * winw + winx), (float)winy, (float)(xpos * winw + winx), (float)(winy + winh));
+    }
+    if (drawStereo) {
+        g.setColour(Colour(COLOR_AUDIO));
+        g.drawEllipse((float)(xpos2 * winw + winx - 5.f), (float)((1 - ypos2) * winh + winy - 5.f), 10.0f, 10.0f, 1.0f);
     }
     
     // draw seek trail

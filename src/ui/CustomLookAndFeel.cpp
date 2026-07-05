@@ -37,6 +37,59 @@ void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int wi
     const juce::Slider::SliderStyle style, juce::Slider& slider)
 {
     auto tag = slider.getComponentID();
+
+    if (tag == "stereo_slider") {
+        Rectangle<float> barBounds;
+        auto bounds = Rectangle<int>(x, y, width, height).toFloat();
+        g.setColour(Colour(COLOR_ACTIVE));
+        g.drawRoundedRectangle(bounds.expanded(0.5f), 3.f, 1.f);
+        bounds = bounds.reduced(3.f);
+        bounds = bounds.withHeight(bounds.getHeight() + 1);
+
+        g.setColour(Colour(COLOR_ACTIVE).darker(0.75f));
+
+        const float valuePos = juce::jmap((float)slider.getValue(),
+            (float)slider.getMinimum(),
+            (float)slider.getMaximum(),
+            bounds.getX(),
+            bounds.getRight());
+
+        const float zeroPos = juce::jmap(0.0f,
+            (float)slider.getMinimum(),
+            (float)slider.getMaximum(),
+            bounds.getX(),
+            bounds.getRight());
+
+        const float snappedValuePos = std::round(valuePos);
+        const float snappedZeroPos = std::round(zeroPos);
+
+        if (snappedValuePos >= snappedZeroPos) {
+            barBounds = juce::Rectangle<float>(
+                snappedZeroPos,
+                bounds.getY(),
+                snappedValuePos - snappedZeroPos,
+                bounds.getHeight());
+        }
+        else {
+            barBounds = juce::Rectangle<float>(
+                snappedValuePos,
+                bounds.getY(),
+                snappedZeroPos - snappedValuePos,
+                bounds.getHeight());
+
+        }
+        g.fillRect(barBounds);
+        String text = slider.isMouseOverOrDragging()
+            ? String(slider.getValue())
+            : "Stereo";
+
+        g.setFont(FontOptions(16.f));
+        g.setColour(Colour(COLOR_ACTIVE));
+        g.drawText(text, bounds, Justification::centred);
+
+        return;
+    }
+
     if (tag != "symmetric") {
         LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
         return;
