@@ -142,6 +142,62 @@ void Rotary::draw_label_value(juce::Graphics& g, float slider_val)
             }
             text = ss.str();
         }
+        else if (format == tptSlope) {
+            int v = (int)slider_val;
+            int ftype = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
+            text = "";
+
+            if (ftype == 10 || ftype == 17 || ftype == 18 || ftype == 21 || ftype == 26 || ftype == 27 || ftype == 28 || 
+                ftype == 29 || ftype == 30 || ftype == 36 || ftype == 37) 
+            {
+                if (v == 0) text = "12 dB";
+                if (v == 1) text = "24 dB";
+                if (v == 2) text = "48 dB";
+                if (v == 3) text = "96 dB";
+            }
+
+            if (ftype == 11 || ftype == 13 || ftype == 22 || ftype == 23 || ftype == 25) {
+                if (v == 0) text = "12 dB";
+                if (v == 1) text = "24 dB";
+            }
+
+            if (ftype == 12) {
+                if (v == 0) text = "Off";
+                if (v == 1) text = "Low";
+                if (v == 2) text = "High";
+            }
+
+            if (ftype == 14 || ftype == 16 || ftype == 19 || ftype == 33) {
+                if (v == 0) text = "1x";
+                if (v == 1) text = "2x";
+                if (v == 2) text = "4x";
+                if (v == 3) text = "8x";
+            }
+
+            if (ftype == 15 || ftype == 24 || ftype == 34 || ftype == 35) {
+                if (v == 0) text = "12 dB";
+            }
+
+            if (ftype == 20) {
+                if (v == 0) text = "Room";
+                if (v == 1) text = "Hall";
+                if (v == 2) text = "Cave";
+                if (v == 3) text = "Plate";
+            }
+
+            if (ftype == 31) {
+                if (v == 0) text = "Fast";
+                if (v == 1) text = "Mid";
+                if (v == 2) text = "Slow";
+            }
+
+            if (ftype == 32) {
+                if (v == 0) text = "12 dB";
+                if (v == 1) text = "24 dB";
+                if (v == 2) text = "48 dB";
+            }
+           
+        }
     }
 
     g.setColour(Colours::white);

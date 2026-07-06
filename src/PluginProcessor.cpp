@@ -13,11 +13,11 @@ static float noSnap(float min, float max, float value)
 
 FILTRAudioProcessor::FILTRAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-         .withInput("Sidechain", juce::AudioChannelSet::stereo(), true)
-         .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-     )
+    : AudioProcessor(BusesProperties()
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
+        .withInput("Sidechain", juce::AudioChannelSet::stereo(), true)
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+    )
     , settings{}
     , params(*this, &undoManager, "PARAMETERS", {
         std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 1.0f),
@@ -32,22 +32,23 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterChoice>("trigger", "Trigger", StringArray { "Sync", "MIDI", "Audio" }, 0),
         std::make_unique<juce::AudioParameterChoice>("sync", "Sync", StringArray { "Rate Hz", "1/256", "1/128", "1/64", "1/32", "1/16", "1/8", "1/4", "1/2", "1/1", "2/1", "4/1", "1/16t", "1/8t", "1/4t", "1/2t", "1/1t", "1/16.", "1/8.", "1/4.", "1/2.", "1/1." }, 9),
         std::make_unique<juce::AudioParameterFloat>("rate", "Rate Hz", juce::NormalisableRange<float>(0.01f, 5000.0f, 0.01f, 0.2f), 1.0f),
-        std::make_unique<juce::AudioParameterFloat>("phase", "Phase", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("phase", "Phase", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("min", "Min", 0.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterFloat>("max", "Max", 0.0f, 1.0f, 1.0f),
-        std::make_unique<juce::AudioParameterFloat>("smooth", "Smooth", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("attack", "Attack", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("release", "Release", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("smooth", "Smooth", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("attack", "Attack", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("release", "Release", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("tension", "Tension", -1.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterFloat>("tensionatk", "Attack Tension", -1.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterFloat>("tensionrel", "Release Tension", -1.0f, 1.0f, 0.0f),
         std::make_unique<juce::AudioParameterBool>("snap", "Snap", false),
-        std::make_unique<juce::AudioParameterInt>("grid", "Grid", 0, (int)std::size(GRID_SIZES)-1, 2),
-        std::make_unique<juce::AudioParameterInt>("seqstep", "Sequencer Step", 0, (int)std::size(GRID_SIZES)-1, 2),
-        std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", juce::NormalisableRange<float> (0.0f, 10.0f, 0.001f, 0.5f), 1.0f),
+        std::make_unique<juce::AudioParameterInt>("grid", "Grid", 0, (int)std::size(GRID_SIZES) - 1, 2),
+        std::make_unique<juce::AudioParameterInt>("seqstep", "Sequencer Step", 0, (int)std::size(GRID_SIZES) - 1, 2),
+        std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", juce::NormalisableRange<float>(0.0f, 10.0f, 0.001f, 0.5f), 1.0f),
         // filter params
         std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-", "SVF", "Ladder", "Diode", "SEM", "Bitcrush", "Formant", "Comb", "MS-20", "AP Phaser", "Wavefolder", "Reverb", "Kilo AP", "CEM3320", "SSM 2040", "CS-80", "Jupiter", "EDP Wasp", "Butterworth", "Chebyshev", "Bessel", "Elliptic", "Vactrol LPG", "Resonator", "Waveguides", "FShifter", "2D Morph", "Phased Array", "Nyquist AA" }, 0),
         std::make_unique<juce::AudioParameterChoice>("fmode", "Filter Mode", StringArray { "Low Pass", "Band Pass", "High Pass", "Band Stop", "Peak" }, 0),
+        std::make_unique<juce::AudioParameterInt>("fslope", "Filter Slope", 0, 3, 0), // used by tpt filters
         std::make_unique<juce::AudioParameterFloat>("flerp", "Filter Lerp", juce::NormalisableRange<float> (0.0f, 1.0f), 0.5f),
         std::make_unique<juce::AudioParameterFloat>("fdrive", "Filter Drive", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>("fmorph", "Filter Morph", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
@@ -571,6 +572,7 @@ void FILTRAudioProcessor::resetFilters()
     auto flerp = (double)params.getRawParameterValue("flerp")->load();
     auto fdrive = (double)params.getRawParameterValue("fdrive")->load();
     auto fmorph = (double)params.getRawParameterValue("fmorph")->load();
+    auto fslope = (int)params.getRawParameterValue("fslope")->load();
 
     if (ftype == FilterType::kLinear12) {
         lFilter = std::make_unique<Linear>(k12p);
@@ -626,6 +628,8 @@ void FILTRAudioProcessor::resetFilters()
     rFilter->reset(0.0);
     lFilter->setMorph(fmorph);
     rFilter->setMorph(fmorph);
+    lFilter->setSlope(fslope);
+    rFilter->setSlope(fslope);
     lFilter->setLerp((int)(srate * F_LERP_MILLIS * flerp / 1000.0));
     rFilter->setLerp((int)(srate * F_LERP_MILLIS * flerp / 1000.0));
 
@@ -746,6 +750,7 @@ void FILTRAudioProcessor::onSlider()
     auto flerp = (double)params.getRawParameterValue("flerp")->load();
     auto fdrive = (double)params.getRawParameterValue("fdrive")->load();
     auto fmorph = (double)params.getRawParameterValue("fmorph")->load();
+    auto fslope = (int)params.getRawParameterValue("fslope")->load();
 
     if (lftype != ftype) {
         resetFilters();
@@ -777,6 +782,11 @@ void FILTRAudioProcessor::onSlider()
         lFilter->setMorph(fmorph);
         rFilter->setMorph(fmorph);
         lfmorph = fmorph;
+    }
+
+    if (lfslope != fslope) {
+        lFilter->setSlope(fslope);
+        rFilter->setSlope(fslope);
     }
 
     if (cutoffDirty) {

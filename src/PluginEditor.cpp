@@ -288,6 +288,10 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     morph = std::make_unique<Rotary>(p, "fmorph", "Morph", RotaryLabel::percx100);
     addAndMakeVisible(*morph);
     morph->setBounds(col,row,80,65);
+
+    slope = std::make_unique<Rotary>(p, "fslope", "Slope", RotaryLabel::tptSlope);
+    addAndMakeVisible(*slope);
+    slope->setBounds(morph->getBounds());
     col += 75;
 
     rate = std::make_unique<Rotary>(p, "rate", "Rate", RotaryLabel::hz1f);
@@ -679,12 +683,14 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     int sync = (int)audioProcessor.params.getRawParameterValue("sync")->load();
     bool showAudioKnobs = audioProcessor.showAudioKnobs;
     bool isPhaser = ftype == kPhaserPos || ftype == kPhaserNeg;
+    bool isTpt = ftype >= kTpt;
 
     filterModeMenu.setVisible(!isPhaser);
 
     // layout knobs
-    drive->setVisible(!isPhaser);
-    morph->setVisible(isPhaser);
+    drive->setVisible(!isPhaser && !isTpt);
+    morph->setVisible(isPhaser && !isTpt);
+    slope->setVisible(isTpt);
     tension->setVisible(!audioProcessor.dualTension);
     tensionatk->setVisible(audioProcessor.dualTension);
     tensionrel->setVisible(audioProcessor.dualTension);

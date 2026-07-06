@@ -24,6 +24,7 @@ public:
 	double eval(double sample) override;
 	void setLerp(int duration) override;
 	void setDrive(double drive) override;
+	void setSlope(int slope) override;
 	void tick() override;
 
 private:

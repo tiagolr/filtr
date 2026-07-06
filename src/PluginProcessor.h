@@ -199,6 +199,7 @@ public:
     double lflerp = -1.0;
     double lfdrive = -1.0;
     double lfmorph = -1.0;
+    int lfslope = -1;
     juce::dsp::LadderFilter<double> ladderFilter;
     double lastOutL = 0.0; // used for smoothly transition filter types
     double lastOutR = 0.0;

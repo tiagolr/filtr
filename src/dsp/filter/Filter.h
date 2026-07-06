@@ -73,8 +73,9 @@ public:
 	Filter(FilterType type) : type(type), mode(LP) {}
 	virtual ~Filter() {}
 	virtual void setMode(FilterMode mode_) { mode = mode_; }
-	virtual void setDrive(double norm) { (void)norm; };
-	virtual void setMorph(double norm) { morph = norm; }; // for phaser filter
+	virtual void setDrive(double norm) { (void)norm; }
+	virtual void setMorph(double norm) { morph = norm; } // for phaser filter
+	virtual void setSlope(int slope) { (void)slope; }
 
 	virtual void init(double srate, double freq, double qnorm) = 0;
 	virtual void reset(double sample) = 0;

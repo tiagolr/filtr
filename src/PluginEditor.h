@@ -81,6 +81,7 @@ private:
     std::unique_ptr<Rotary> cutoffset;
     std::unique_ptr<Rotary> resoffset;
     std::unique_ptr<Rotary> morph;
+    std::unique_ptr<Rotary> slope;
     std::unique_ptr<Rotary> rate;
     std::unique_ptr<Rotary> smooth;
     std::unique_ptr<Rotary> attack;

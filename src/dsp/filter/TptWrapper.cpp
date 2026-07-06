@@ -43,3 +43,8 @@ void TptWrapper::setDrive(double drive_)
 {
     (void)drive_;
 }
+
+void TptWrapper::setSlope(int slope)
+{
+    filter.setSlope(slope);
+}
