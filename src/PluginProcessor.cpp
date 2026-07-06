@@ -46,7 +46,7 @@ FILTRAudioProcessor::FILTRAudioProcessor()
         std::make_unique<juce::AudioParameterInt>("seqstep", "Sequencer Step", 0, (int)std::size(GRID_SIZES)-1, 2),
         std::make_unique<juce::AudioParameterFloat>("gain", "GainDb", juce::NormalisableRange<float> (0.0f, 10.0f, 0.001f, 0.5f), 1.0f),
         // filter params
-        std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-", "Tpt1", "Tpt2", "Tpt3" }, 0),
+        std::make_unique<juce::AudioParameterChoice>("ftype", "Filter Type", StringArray { "Linear 12", "Linear 24", "Analog 12", "Analog 24", "Moog 12", "Moog 24", "MS-20", "303", "Phaser+", "Phaser-", "SVF", "Ladder", "Diode", "SEM", "Bitcrush", "Formant", "Comb", "MS-20", "AP Phaser", "Wavefolder", "Reverb", "Kilo AP", "CEM3320", "SSM 2040", "CS-80", "Jupiter", "EDP Wasp", "Butterworth", "Chebyshev", "Bessel", "Elliptic", "Vactrol LPG", "Resonator", "Waveguides", "FShifter", "2D Morph", "Phased Array", "Nyquist AA" }, 0),
         std::make_unique<juce::AudioParameterChoice>("fmode", "Filter Mode", StringArray { "Low Pass", "Band Pass", "High Pass", "Band Stop", "Peak" }, 0),
         std::make_unique<juce::AudioParameterFloat>("flerp", "Filter Lerp", juce::NormalisableRange<float> (0.0f, 1.0f), 0.5f),
         std::make_unique<juce::AudioParameterFloat>("fdrive", "Filter Drive", juce::NormalisableRange<float> (0.0f, 1.0f), 0.0f),
@@ -565,7 +565,8 @@ void FILTRAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
 void FILTRAudioProcessor::resetFilters()
 {
-    auto ftype = (FilterType)(int)params.getRawParameterValue("ftype")->load();
+    auto ftyperaw = (int)params.getRawParameterValue("ftype")->load();
+    auto ftype = (FilterType)ftyperaw;
     auto fmode = (FilterMode)(int)params.getRawParameterValue("fmode")->load();
     auto flerp = (double)params.getRawParameterValue("flerp")->load();
     auto fdrive = (double)params.getRawParameterValue("fdrive")->load();
@@ -612,7 +613,7 @@ void FILTRAudioProcessor::resetFilters()
         rFilter = std::make_unique<Phaser>(false);
     }
     else if (ftype >= FilterType::kTpt) {
-        int model = ftype - (int)FilterType::kTpt;
+        int model = ftyperaw - FilterType::kTpt;
         lFilter = std::make_unique<TptWrapper>(model);
         rFilter = std::make_unique<TptWrapper>(model);
     }
@@ -1222,8 +1223,8 @@ void FILTRAudioProcessor::processBlockByType (AudioBuffer<FloatType>& buffer, ju
     auto applyFilter = [&](int sampidx, double envleft, double envright, double resenvleft, double resenvright, double lsample, double rsample) {
         double cutleft = Utils::normalToFreq(envleft);
         double cutright = envleft == envright ? cutleft : Utils::normalToFreq(envright);
-        lFilter->init(srate * samplingFactor, cutleft, resenvleft);
-        rFilter->init(srate * samplingFactor, cutright, resenvright);
+        lFilter->init(ossrate, cutleft, resenvleft);
+        rFilter->init(ossrate, cutright, resenvright);
         double outl = lFilter->eval(lsample) * gain;
         double outr = rFilter->eval(rsample) * gain;
         lFilter->tick();

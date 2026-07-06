@@ -9,7 +9,7 @@ void TptWrapper::init(double _srate, double freq, double q)
 
     constexpr float sqrt2 = 0.7071067811865476f;
     filter.setCutoff((float)freq);
-    filter.setResonance(sqrt2 + (float)q * 10.f);
+    filter.setResonance(sqrt2 + (float)q * (10.f - sqrt2));
 }
 
 void TptWrapper::setMode(FilterMode mode_)

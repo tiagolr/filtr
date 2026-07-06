@@ -186,7 +186,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
                 bool linkpats = (bool)audioProcessor.params.getRawParameterValue("linkpats")->load();
                 if (linkpats)
                     audioProcessor.queuePattern(i + 1);
-                else 
+                else
                     audioProcessor.queueResPattern(i + 1);
             });
         };
@@ -234,7 +234,7 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     patSyncMenu.addItem("4 Beats", 6);
     patSyncMenu.setBounds(col, row, 75, 25);
     patSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "patsync", patSyncMenu);
-    
+
     addAndMakeVisible(stereoSlider);
     stereoSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.params, "stereo", stereoSlider);
     stereoSlider.setComponentID("stereo_slider");
@@ -359,9 +359,34 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     filterTypeMenu.addItem("Phaser +", 9);
     filterTypeMenu.addItem("Phaser -", 10);
     filterTypeMenu.addSeparator();
-    filterTypeMenu.addItem("Tpt1", 11);
-    filterTypeMenu.addItem("Tpt2", 12);
-    filterTypeMenu.addItem("Tpt3", 13);
+    filterTypeMenu.addItem("SVF", 11);
+    filterTypeMenu.addItem("Ladder", 12);
+    filterTypeMenu.addItem("Diode", 13);
+    filterTypeMenu.addItem("SEM", 14);
+    filterTypeMenu.addItem("Bitcrush", 15);
+    filterTypeMenu.addItem("Formant", 16);
+    filterTypeMenu.addItem("Comb", 17);
+    filterTypeMenu.addItem("MS-20", 18);
+    filterTypeMenu.addItem("AP Phaser", 19);
+    filterTypeMenu.addItem("Wavefolder", 20);
+    filterTypeMenu.addItem("Reverb", 21);
+    filterTypeMenu.addItem("Kilo AP", 22);
+    filterTypeMenu.addItem("CEM3320", 23);
+    filterTypeMenu.addItem("SSM 2040", 24);
+    filterTypeMenu.addItem("CS-80", 25);
+    filterTypeMenu.addItem("Jupiter", 26);
+    filterTypeMenu.addItem("EDP Wasp", 27);
+    filterTypeMenu.addItem("Butterworth", 28);
+    filterTypeMenu.addItem("Chebyshev", 29);
+    filterTypeMenu.addItem("Bessel", 30);
+    filterTypeMenu.addItem("Elliptic", 31);
+    filterTypeMenu.addItem("Vactrol LPG", 32);
+    filterTypeMenu.addItem("Resonator", 33);
+    filterTypeMenu.addItem("Waveguides", 34);
+    filterTypeMenu.addItem("FShifter", 35);
+    filterTypeMenu.addItem("2D Morph", 36);
+    filterTypeMenu.addItem("Phased Array", 37);
+    filterTypeMenu.addItem("Nyquist AA", 38);
     filterTypeMenu.setBounds(col, row, 75, 25);
     filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "ftype", filterTypeMenu);
     col += 85;
@@ -704,12 +729,12 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     tension->setVisible(!audioProcessor.dualTension);
     tensionatk->setVisible(audioProcessor.dualTension);
     tensionrel->setVisible(audioProcessor.dualTension);
-    
+
     {
         auto col = drive->getBounds().getX();
         auto row = drive->getBounds().getY();
         col += 75;
-        
+
         if (audioProcessor.dualSmooth) {
             smooth->setVisible(false);
             attack->setVisible(true);
@@ -744,7 +769,7 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
 
     paintWidget->setVisible(audioProcessor.showPaintWidget);
     seqWidget->setVisible(audioProcessor.showSequencer);
-    seqWidget->setBounds(seqWidget->getBounds().withY(paintWidget->isVisible() 
+    seqWidget->setBounds(seqWidget->getBounds().withY(paintWidget->isVisible()
         ? paintWidget->getBounds().getBottom() + 10
         : paintWidget->getBounds().getY()
     ).withWidth(getWidth() - PLUG_PADDING * 2));
@@ -965,7 +990,7 @@ void FILTRAudioProcessorEditor::drawGear(Graphics& g, Rectangle<int> bounds, flo
     float y = bounds.toFloat().getCentreY();
     float oradius = radius;
     float iradius = radius / 3.f;
-    float cradius = iradius / 1.5f; 
+    float cradius = iradius / 1.5f;
     float coffset = MathConstants<float>::twoPi;
     float inc = MathConstants<float>::twoPi / segs;
 

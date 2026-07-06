@@ -332,7 +332,7 @@ void TptFilter::updateCoefficients()
     float targetCutoff = cutoff.getTargetValue();
     float targetRes = resonance.getTargetValue();
 
-    float smoothCoef = 1.0f - std::exp(-1.0f / (0.01f * (state.sampleRate / 16.0f)));
+    float smoothCoef = 1.0f - std::exp(-1.0f / (0.01f * (float)state.sampleRate));
     state.smoothedDigitalCutoff += smoothCoef * (targetCutoff - state.smoothedDigitalCutoff);
     float currentRes = lastRes + smoothCoef * (targetRes - lastRes);
 
@@ -416,13 +416,15 @@ float TptFilter::processSample(int ch, float x)
         float k_max = 4.2f;
         if (state.slopeIdx == 1) k_max = 4.6f;
         else if (state.slopeIdx == 2) k_max = 5.0f;
-        float k_val = juce::jmap(state.currentResVal, 0.1f, 10.0f, 0.0f, k_max);
+        float k_val = juce::jmap(state.currentResVal, 0.707f, 10.0f, 0.0f, k_max);
         comp = 1.0f + 0.2f * k_val;
     }
 
     else if (m == 7)
         comp = 1.0f + state.currentResVal * 0.15f;
-    x *= comp;
+
+    // FIX - for some reason comp is broken, makes the output louder
+    //x *= comp;
 
     // ===== Bitcrush / SRR: 前処理 =====
     if (m == 4)
@@ -485,7 +487,7 @@ float TptFilter::processSample(int ch, float x)
     {
         float k_norm;
         if (m == 2) {
-            k_norm = juce::jmap(state.currentResVal, 0.1f, 10.0f, 0.0f, 1.0f);
+            k_norm = juce::jmap(state.currentResVal, 0.707f, 10.0f, 0.0f, 1.0f);
         }
         else {
             float r_scale = (m == 13) ? 5.0f : 4.5f;
