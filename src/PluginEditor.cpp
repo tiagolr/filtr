@@ -16,6 +16,8 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
 
     audioProcessor.addChangeListener(this);
     audioProcessor.params.addParameterListener("sync", this);
+    audioProcessor.params.addParameterListener("ftype", this);
+    audioProcessor.params.addParameterListener("fmode", this);
     audioProcessor.params.addParameterListener("trigger", this);
     audioProcessor.params.addParameterListener("cutenvon", this);
     audioProcessor.params.addParameterListener("resenvon", this);
@@ -346,60 +348,15 @@ FILTRAudioProcessorEditor::FILTRAudioProcessorEditor (FILTRAudioProcessor& p)
     row += 75;
 
     addAndMakeVisible(filterTypeMenu);
-    filterTypeMenu.setComponentID("small");
-    filterTypeMenu.addSectionHeading("Filter Type");
-    filterTypeMenu.addItem("Linear 12", 1);
-    filterTypeMenu.addItem("Linear 24", 2);
-    filterTypeMenu.addItem("Analog 12", 3);
-    filterTypeMenu.addItem("Analog 24", 4);
-    filterTypeMenu.addItem("Moog 12", 5);
-    filterTypeMenu.addItem("Moog 24", 6);
-    filterTypeMenu.addItem("MS-20", 7);
-    filterTypeMenu.addItem("303", 8);
-    filterTypeMenu.addItem("Phaser +", 9);
-    filterTypeMenu.addItem("Phaser -", 10);
-    filterTypeMenu.addSeparator();
-    filterTypeMenu.addItem("SVF", 11);
-    filterTypeMenu.addItem("Ladder", 12);
-    filterTypeMenu.addItem("Diode", 13);
-    filterTypeMenu.addItem("SEM", 14);
-    filterTypeMenu.addItem("Bitcrush", 15);
-    filterTypeMenu.addItem("Formant", 16);
-    filterTypeMenu.addItem("Comb", 17);
-    filterTypeMenu.addItem("MS-20", 18);
-    filterTypeMenu.addItem("AP Phaser", 19);
-    filterTypeMenu.addItem("Wavefolder", 20);
-    filterTypeMenu.addItem("Reverb", 21);
-    filterTypeMenu.addItem("Kilo AP", 22);
-    filterTypeMenu.addItem("CEM3320", 23);
-    filterTypeMenu.addItem("SSM 2040", 24);
-    filterTypeMenu.addItem("CS-80", 25);
-    filterTypeMenu.addItem("Jupiter", 26);
-    filterTypeMenu.addItem("EDP Wasp", 27);
-    filterTypeMenu.addItem("Butterworth", 28);
-    filterTypeMenu.addItem("Chebyshev", 29);
-    filterTypeMenu.addItem("Bessel", 30);
-    filterTypeMenu.addItem("Elliptic", 31);
-    filterTypeMenu.addItem("Vactrol LPG", 32);
-    filterTypeMenu.addItem("Resonator", 33);
-    filterTypeMenu.addItem("Waveguides", 34);
-    filterTypeMenu.addItem("FShifter", 35);
-    filterTypeMenu.addItem("2D Morph", 36);
-    filterTypeMenu.addItem("Phased Array", 37);
-    filterTypeMenu.addItem("Nyquist AA", 38);
+    filterTypeMenu.setComponentID("button");
     filterTypeMenu.setBounds(col, row, 75, 25);
-    filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "ftype", filterTypeMenu);
+    filterTypeMenu.onClick = [this] { showFilterTypeMenu(); };
     col += 85;
 
     addAndMakeVisible(filterModeMenu);
-    filterModeMenu.addSectionHeading("Filter Mode");
-    filterModeMenu.addItem("LP", 1);
-    filterModeMenu.addItem("BP", 2);
-    filterModeMenu.addItem("HP", 3);
-    filterModeMenu.addItem("Notch", 4);
-    filterModeMenu.addItem("Peak", 5);
     filterModeMenu.setBounds(col, row, 75, 25);
-    filterModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "fmode", filterModeMenu);
+    filterModeMenu.setComponentID("button");
+    filterModeMenu.onClick = [this] { showFilterModeMenu(); };
     col += 85;
 
     col += 25;
@@ -667,6 +624,8 @@ FILTRAudioProcessorEditor::~FILTRAudioProcessorEditor()
     setLookAndFeel(nullptr);
     delete customLookAndFeel;
     audioProcessor.params.removeParameterListener("sync", this);
+    audioProcessor.params.removeParameterListener("ftype", this);
+    audioProcessor.params.removeParameterListener("fmode", this);
     audioProcessor.params.removeParameterListener("trigger", this);
     audioProcessor.params.removeParameterListener("cutenvon", this);
     audioProcessor.params.removeParameterListener("resenvon", this);
@@ -803,6 +762,105 @@ void FILTRAudioProcessorEditor::toggleUIComponents()
     resenv->layoutComponents();
 
     bandsWidget->setVisible(audioProcessor.showBandsEditor);
+
+    auto fname = audioProcessor.params.getParameter("ftype")->getCurrentValueAsText();
+    filterTypeMenu.setButtonText(fname);
+
+    int fmode = (int)audioProcessor.params.getRawParameterValue("fmode")->load();
+    String text = "";
+    if (ftype < 10) {
+        if (fmode == 0) text = "LP";
+        if (fmode == 1) text = "BP";
+        if (fmode == 2) text = "HP";
+        if (fmode == 3) text = "Notch";
+        if (fmode == 4) text = "Peak";
+    }
+    else if (ftype == 11) {
+        if (fmode == 0) text = "LP";
+        if (fmode == 1) text = "BP";
+        if (fmode == 2) text = "HP";
+    }
+    else if (ftype == 12) {
+        if (fmode == 0) text = "LP";
+    }
+    else if (ftype == 14) {
+        if (fmode == 0) text = "Warm";
+        if (fmode == 1) text = "Focus";
+        if (fmode == 2) text = "Hollow";
+        if (fmode == 3) text = "Bright";
+    }
+    else if (ftype == 15) {
+        if (fmode == 1) text = "BP";
+    }
+    else if (ftype == 16) {
+        if (fmode == 0) text = "Warm";
+        if (fmode == 1) text = "Metal";
+        if (fmode == 2) text = "Comb";
+        if (fmode == 3) text = "Phase";
+    }
+    else if (ftype == 18) {
+        if (fmode == 0) text = "FB+";
+        if (fmode == 1) text = "FB-";
+    }
+    else if (ftype == 20) {
+        if (fmode == 0) text = "Dark";
+        if (fmode == 1) text = "Mid";
+        if (fmode == 2) text = "Air";
+        if (fmode == 3) text = "Open";
+    }
+    else if (ftype == 21) {
+        if (fmode == 0) text = "Lin";
+        if (fmode == 1) text = "Log";
+        if (fmode == 2) text = "Mirror";
+        if (fmode == 3) text = "Rand";
+    }
+    else if (ftype == 22) {
+        if (fmode == 0) text = "LP";
+        if (fmode == 1) text = "BP";
+        if (fmode == 2) text = "HP";
+    }
+    else if (ftype == 23) {
+        if (fmode == 0) text = "LP";
+    }
+    else if (ftype == 24) {
+        if (fmode == 0) text = "LP";
+        if (fmode == 2) text = "HP";
+    }
+    else if (ftype == 25) {
+        if (fmode == 0) text = "LP";
+    }
+    else if (ftype == 31) {
+        if (fmode == 0) text = "LP";
+    }
+    else if (ftype == 32) {
+        if (fmode == 0) text = "Type0";
+        if (fmode == 1) text = "Type1";
+        if (fmode == 2) text = "Type2";
+        if (fmode == 3) text = "Type3";
+    }
+    else if (ftype == 33) {
+        if (fmode == 0) text = "Wet";
+        if (fmode == 1) text = "Mix";
+    }
+    else if (ftype == 34) {
+        if (fmode == 0) text = "Up";
+        if (fmode == 1) text = "Down";
+    }
+    else if (ftype == 36) {
+        if (fmode == 0) text = "Blend";
+        if (fmode == 2) text = "Wet";
+    }
+    else if (ftype == 37) {
+        if (fmode == 0) text = "LP";
+    }
+    else {
+        if (fmode == 0) text = "LP";
+        if (fmode == 1) text = "BP";
+        if (fmode == 2) text = "HP";
+        if (fmode == 3) text = "Notch";
+    }
+
+    filterModeMenu.setButtonText(text);
 
     repaint();
 }
@@ -1119,4 +1177,193 @@ void FILTRAudioProcessorEditor::resized()
 
     audioProcessor.plugWidth = getWidth();
     audioProcessor.plugHeight = getHeight();
+}
+
+void FILTRAudioProcessorEditor::showFilterModeMenu()
+{
+    int ftype = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
+    int fmode = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
+
+    juce::PopupMenu menu;
+    menu.addSectionHeader("Filter Mode");
+
+    if (ftype < 10) {
+        menu.addItem(1, "LP", true, fmode == 0);
+        menu.addItem(2, "BP", true, fmode == 1);
+        menu.addItem(3, "HP", true, fmode == 2);
+        menu.addItem(4, "Notch", true, fmode == 3);
+        menu.addItem(5, "Peak", true, fmode == 4);
+    }
+    else if (ftype == 11) {
+        menu.addItem(1, "LP", true, fmode == 0);
+        menu.addItem(2, "BP", true, fmode == 1);
+        menu.addItem(3, "HP", true, fmode == 2);
+    }
+    else if (ftype == 12) {
+        menu.addItem(1, "LP", true, fmode == 0);
+    }
+    else if (ftype == 14) {
+        menu.addItem(1, "Warm", true, fmode == 0);
+        menu.addItem(2, "Focus", true, fmode == 1);
+        menu.addItem(3, "Hollow", true, fmode == 2);
+        menu.addItem(4, "Bright", true, fmode == 3);
+    }
+    else if (ftype == 15) {
+        menu.addItem(2, "BP", true, fmode == 1);
+    }
+    else if (ftype == 16) {
+        menu.addItem(1, "Warm", true, fmode == 0);
+        menu.addItem(2, "Metal", true, fmode == 1);
+        menu.addItem(3, "Comb", true, fmode == 2);
+        menu.addItem(4, "Phase", true, fmode == 3);
+    }
+    else if (ftype == 18) {
+        menu.addItem(1, "FB+", true, fmode == 0);
+        menu.addItem(2, "FB-", true, fmode == 1);
+    }
+    else if (ftype == 20) {
+        menu.addItem(1, "Dark", true, fmode == 0);
+        menu.addItem(2, "Mid", true, fmode == 1);
+        menu.addItem(3, "Air", true, fmode == 2);
+        menu.addItem(4, "Open", true, fmode == 3);
+    }
+    else if (ftype == 21) {
+        menu.addItem(1, "Lin", true, fmode == 0);
+        menu.addItem(2, "Log", true, fmode == 1);
+        menu.addItem(3, "Mirror", true, fmode == 2);
+        menu.addItem(4, "Rand", true, fmode == 3);
+    }
+    else if (ftype == 22) {
+        menu.addItem(1, "LP", true, fmode == 0);
+        menu.addItem(2, "BP", true, fmode == 1);
+        menu.addItem(3, "HP", true, fmode == 2);
+    }
+    else if (ftype == 23) {
+        menu.addItem(1, "LP", true, fmode == 0);
+    }
+    else if (ftype == 24) {
+        menu.addItem(1, "LP", true, fmode == 0);
+        menu.addItem(3, "HP", true, fmode == 2);
+    }
+    else if (ftype == 25) {
+        menu.addItem(1, "LP", true, fmode == 0);
+    }
+    else if (ftype == 31) {
+        menu.addItem(1, "LP", true, fmode == 0);
+    }
+    else if (ftype == 32) {
+        menu.addItem(1, "Type0", true, fmode == 0);
+        menu.addItem(2, "Type1", true, fmode == 1);
+        menu.addItem(3, "Type2", true, fmode == 2);
+        menu.addItem(4, "Type3", true, fmode == 3);
+    }
+    else if (ftype == 33) {
+        menu.addItem(1, "Wet", true, fmode == 0);
+        menu.addItem(2, "Mix", true, fmode == 1);
+    }
+    else if (ftype == 34) {
+        menu.addItem(1, "Up", true, fmode == 0);
+        menu.addItem(2, "Down", true, fmode == 1);
+    }
+    else if (ftype == 36) {
+        menu.addItem(1, "Blend", true, fmode == 0);
+        menu.addItem(3, "Wet", true, fmode == 2);
+    }
+    else if (ftype == 37) {
+        menu.addItem(1, "LP", true, fmode == 0);
+    }
+    else {
+        menu.addItem(1, "LP", true, fmode == 0);
+        menu.addItem(2, "BP", true, fmode == 1);
+        menu.addItem(3, "HP", true, fmode == 2);
+        menu.addItem(4, "Notch", true, fmode == 3);
+    }
+
+    auto menuPos = localPointToGlobal(filterModeMenu.getBounds().getBottomLeft());
+    menu.setLookAndFeel(&getLookAndFeel());
+    menu.showMenuAsync(juce::PopupMenu::Options()
+        .withParentComponent(findParentComponentOfClass<juce::AudioProcessorEditor>())
+        .withTargetComponent(*this)
+        .withTargetScreenArea({ menuPos.getX(), menuPos.getY(), 1, 1 }),
+        [this](int result) {
+            if (result == 0) return;
+            auto param = audioProcessor.params.getParameter("fmode");
+            param->setValueNotifyingHost(param->convertTo0to1((float)(result - 1)));
+        });
+}
+
+void FILTRAudioProcessorEditor::showFilterTypeMenu()
+{
+    int ftype = (int)audioProcessor.params.getRawParameterValue("ftype")->load();
+
+    juce::PopupMenu menu;
+    menu.addSectionHeader("Base");
+    menu.addItem(1, "Linear 12", true, ftype + 1 == 1);
+    menu.addItem(2, "Linear 24", true, ftype + 1 == 2);
+    menu.addItem(3, "Analog 12",true, ftype + 1 == 3);
+    menu.addItem(4, "Analog 24",true, ftype + 1 == 4);
+    menu.addItem(5, "Moog 12",true, ftype + 1 == 5);
+    menu.addItem(6, "Moog 24",true, ftype + 1 == 6);
+    menu.addItem(7, "MS-20",true, ftype + 1 == 7);
+    menu.addItem(8, "303",true, ftype + 1 == 8);
+    menu.addItem(9, "Phaser +",true, ftype + 1 ==  9);
+    menu.addItem(10, "Phaser -", true, ftype + 1 == 10);
+
+    menu.addColumnBreak();
+    menu.addSectionHeader("TPT SVF");
+    menu.addItem(11, "SVF", true, ftype + 1 == 11);
+    menu.addItem(14, "SEM", true, ftype + 1 == 14);
+    menu.addItem(15, "Bitcrush", true, ftype + 1 == 15);
+    menu.addItem(17, "Comb", true, ftype + 1 == 17);
+    menu.addItem(18, "MS-20", true, ftype + 1 == 18);
+    menu.addItem(20, "Wavefolder", true, ftype + 1 == 20);
+    menu.addItem(25, "CS-80", true, ftype + 1 == 25);
+    menu.addItem(27, "EDP Wasp", true, ftype + 1 == 27);
+    menu.addItem(34, "Waveguides", true, ftype + 1 == 34);
+
+    menu.addColumnBreak();
+    menu.addSectionHeader("TPT Ladder");
+    menu.addItem(12, "Ladder", true, ftype + 1 == 12);
+    menu.addItem(13, "Diode", true, ftype + 1 == 13);
+    menu.addItem(23, "CEM3320", true, ftype + 1 == 23);
+    menu.addItem(24, "SSM 2040", true, ftype + 1 == 24);
+    menu.addItem(26, "Jupiter", true, ftype + 1 == 26);
+
+    menu.addColumnBreak();
+    menu.addSectionHeader("TPT Analog");
+    menu.addItem(16, "Formant", true, ftype + 1 == 16);
+    menu.addItem(32, "Vactrol LPG", true, ftype + 1 == 32);
+    menu.addItem(33, "Resonator", true, ftype + 1 == 33);
+    menu.addItem(38, "Nyquist AA", true, ftype + 1 == 38);
+
+    //menu.addColumnBreak();
+    menu.addSectionHeader("TPT Digital");
+    menu.addItem(28, "Butterworth", true, ftype + 1 == 28);
+    menu.addItem(29, "Chebyshev", true, ftype + 1 == 29);
+    menu.addItem(30, "Bessel", true, ftype + 1 == 30);
+    menu.addItem(31, "Elliptic", true, ftype + 1 == 31);
+
+    menu.addColumnBreak();
+    menu.addSectionHeader("TPT Spectral");
+    menu.addItem(19, "AP Phaser", true, ftype + 1 == 19);
+    menu.addItem(22, "Kilo AP", true, ftype + 1 == 22);
+    menu.addItem(35, "FShifter", true, ftype + 1 == 35);
+    menu.addItem(36, "2D Morph", true, ftype + 1 == 36);
+    menu.addItem(37, "Phased Array", true, ftype + 1 == 37);
+
+    //menu.addColumnBreak();
+    menu.addSectionHeader("TPT Experimental");
+    menu.addItem(21, "Reverb", true, ftype + 1 == 21);
+
+    auto menuPos = localPointToGlobal(filterTypeMenu.getBounds().getBottomLeft());
+    menu.setLookAndFeel(&getLookAndFeel());
+    menu.showMenuAsync(juce::PopupMenu::Options()
+        .withParentComponent(findParentComponentOfClass<juce::AudioProcessorEditor>())
+        .withTargetComponent(*this)
+        .withTargetScreenArea({ menuPos.getX(), menuPos.getY(), 1, 1 }),
+        [this](int result) {
+            if (result == 0) return;
+            auto param = audioProcessor.params.getParameter("ftype");
+            param->setValueNotifyingHost(param->convertTo0to1((float)(result - 1)));
+        });
 }

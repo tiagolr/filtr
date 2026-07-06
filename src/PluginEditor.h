@@ -44,6 +44,8 @@ public:
     void drawChain(Graphics&g, Rectangle<int> boudns, Colour color, Colour bg);
     void drawUndoButton(Graphics& g, juce::Rectangle<float> area, bool invertx, Colour color);
     void drawPowerButton(Graphics& g, Rectangle<float> area, Colour color);
+    void showFilterTypeMenu();
+    void showFilterModeMenu();
     FILTRAudioProcessor& audioProcessor;
 
 private:
@@ -92,10 +94,8 @@ private:
     ComboBox algoMenu;
     TextButton linkPatsButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> algoAttachment;
-    ComboBox filterTypeMenu;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterTypeAttachment;
-    ComboBox filterModeMenu;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterModeAttachment;
+    TextButton filterTypeMenu;
+    TextButton filterModeMenu;
     TextButton resEnvButton;
     TextButton resEnvOnButton;
     TextButton cutEnvButton;
